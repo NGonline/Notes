@@ -3279,6 +3279,7 @@ if(f.exists())
 else
     f.mkdirs(); // create an entire directory path
 ```
+- In Java, it appears that you are supposed to use a `File` object to determine whether a file exists, because if you open it as a `FileOutputStream` or `FileWriter`, it will always get overwritten.
 
 ## Input and Output
 - Everything derived from the `InputStream` or `Reader` classes has basic methods called `read()` for reading a single **byte** or an array of **byte**s. Likewise, everything derived from `OutputStream` or `Writer` class has basic methods called `write()` for writing a single **byte** or an array of **byte**s. They exist so that other classes can use them to provide more useful interfaces.
@@ -3924,7 +3925,123 @@ public class Blip implements Externalizable{
     }
 }
 ```
+- Once it has been serialized, even `private`, it's possible for someone to access it by reading a file. You can implement `Externalizable` and explicitly serialize only the necessary parts inside `writeExternal()`.
+- If you're working with a `Serializable` object, all serialization happens automatically. You can use the `transient` keyword to prevent some subobject from automatically saving and restoring.
+```
+public class Logon implements Serializable{
+    private Date date = new Date();
+    private String username;
+    private transient String password;
+    public Logon(String name, String pwd){
+        username = name;
+        password = pwd;
+    }
+    
+    public static void main(String[] args){
+        Logon a = new Logon("Hulk", "littlePony");
+        ObjectOutputStream o = new ObjectOutputStream(new FileOutputStream("Logon.out"));
+        o.writeObject(a);
+        o.close();
+        ObjectInputStream in = new ObjectInputStream(new FileInputStream("Logon.out"));
+        a = (Logon)in.readObject(); // date is unchanged, password is null
+    }
+}
+```
+- `writeObject()` and `readObject()` will automatically be called when the object is serialized and deserialized. They are not part of a base class or the `Serializable` interface, and they are `private` and `void`. The `writeObject()` and `readObject()` methods of `ObjectOutputStream` and `ObjectInputStream` call your objects `writeObject()` and `readObject()` via reflection.
+- When you call `ObjectOutputStream.writeObject()`, the `Serializable` object that you pass it to is interrogated using reflection to see if it implements its own `writeObject()`. If so, the normal serialization process is skipped and the custom one is called. The same situation exists for `readObject()`.
+- You can choose to perform the default serialization by calling `defaultWriteObject()` inside your `writeObject()`. Likewise, inside `readObject()` you can call `defaultReadObject()`.
+```
+public class SerialCtl implements Serializable{
+    private String a;
+    private transient String b;
+    ...
+    private void writeObject(ObjectOutputStream stream) throws IOException{
+        stream.defaultWriteObject();    // must be the first operation if needed
+        stream.writeObject(b);
+    }
+    private void readObject(ObjectInputStream stream) throws IOException{
+        stream.defaultReadObject(); // must be the first operation if needed
+        b = (String)stream.readObject();
+    }
+}
+```
+- It's possible to change the version of a serializable class, but it requires an extra depth of understanding. The versioning mechanism is too simple to work reliably in all situations, especially with JavaBeans. So the current serialization support is appropiate for short term storage or RMI between applications.
 
+### Persistence
+- It's possible to use object serialization to and from a `byte` array as a way of doing a "deep copy" of any object that's `Serializable`.
+```
+List<ComplexType> object1 = new ArrayList<ComplexType>();
+object1.add(new ComplexType());
+System.out.println(object1);    // print the address
+ByteArrayOutputStream buf1 = new ByteArrayOutputStream();
+ObjectOutputStream o1 = new ObjectOutputStream(buf1);
+o1.writeObject(object1);
+o1.writeObject(object1);
+
+ByteArrayOutputStream buf2 = new ByteArrayOutputStream();
+ObjectOutputStream o2 = new ObjectOutputStream(buf2);
+o2.writeObject(object1);
+
+ObjectInputStream in1 = new ObjectInputStream(new ByteArrayInputStream(buf1.toByteArray()));
+List<ComplexType> object2 = (ComplexType)in1.readObject();
+System.out.println(object2);    // different from object1, including its subobjects
+List<ComplexType> object3 = (ComplexType)in1.readObject();
+System.out.println(object3);    // same address as object2
+
+ObjectInputStream in2 = new ObjectInputStream(new ByteArrayInputStream(buf2.toByteArray()));
+List<ComplexType> object4 = (ComplexType)in2.readObject();
+System.out.println(object4);    // different from object2, including its subobjects
+```
+- As long as you're serializing everything to a single stream, you'll recover the same web of objects that you wrote, with no accidental duplication of objects. If you change the state of your objects in between the time you write the first and the last, the objects will be written in whatever state they are in and with whatever connections they have to other objects at the time you serialize them.
+- The safest thing to do if you want to save the state of a system is to serialize as an "atomic" operation. Put all the objects that comprise the state of your system in a single container and simply write that container out in one operation.
+- `Class` is `Serializable`, so it should be easy to store the `static` fields by simply serializing the `Class` object, but it's not. Even you serialize and deserialize the `Class` objects, the `static`s won't get serialized at all. You should add `serializeStaticState()` and `deserializeStaticState()` and explicitly call them.
+```
+class Circle extends Shape{
+    private static int color = 1;   // will be 1 after deserialized
+    ...
+}
+class Square extends Shape{
+    private static int color;   // will be 0 because of initialization durinig deserialization
+    public Circle(){
+        color = 1;
+    }
+}
+class Line extends Shape{
+    private static int color;
+    public static void serializeStaticState(ObjectOutputStream os) throws IOException{
+        os.writeInt(color);
+    }
+    public static void deserializeStaticState(ObjectInputStream os) throws IOException{
+        color = os.readInt();
+    }
+}
+```
+- If you have a security issue, `private` fields should be marked as `transient`. But then you should design a secure way to store and restore explicitly.
+
+## XML
+- Converting data to XML format allows it to be consumed by a large variety of platforms and languages.
+- XOM is simple and emphasizes XML correctness. `Element` class and `appendChild()` method will construct XMLs. `Serializer` class can turn XML into a more readable form.
+
+## Preferences
+- The preferences API is much closer to persistence than it is to object serialization, because it automatically stores and retrieves your information.
+- You can only  hold primitives and strings, and the length of each stored string can't be longer than 8k. As the name suggests, the Preferences API is designed to store and retrieve user preferences and program-configuration settings.
+- Preferences are key-value sets stored in a hierarchy of nodes.
+```
+import java.util.prefs.*;
+public class PreferencesDemo{
+    public static void main(String[] args) throws Exception{
+        Preferences prefs = Preferences.userNodeForPackage(PreferencesDemo.class);
+        prefs.put("Location", "Oz");
+        int count = prefs.getInt("Count", 0);
+        prefs.putInt("Count", ++count);
+        System.out.println(prefs.get("Count", 0));  // each time you run this program, count will be increased
+    }
+}
+```
+- `userNodeForPackage()` and `systemNodeForPackage()` are quite the same.
+- You don't need to use the current class as the node identifier, but that's the usual practice.
+- Once you create the node, it's available for either loading or reading data. The second argument of `get()` is the default value.
+- The Preferences API uses appropriate system resource to accomplish its task (storing the data), and these will vary depending on the OS. In Windows, the registry is used.
 
 # Objects
 - One of the challenges of OOP is to create a one-to-one mapping between the elements in the problem space and objects in the solution space.

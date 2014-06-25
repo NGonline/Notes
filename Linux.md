@@ -106,7 +106,10 @@ dd --- delete the current line
 - `cat -v f` show nonprinting
 
 ## chmod
-- Change the file mode.
+- Change the file mode. The three part of the mode string correspond to the owner, the user in the same group as the owner, and the other users.
+- `chmod [who] [+-=mode]`. `who` can be `u` for owner, `g` for those in the same group, `o` for the others, and `a` for all. `mode` can be `r` or `4` for read, `w` or `2` for write, and `x` or `1` for excute.
+- `chmod 751 file`
+- `-R` means recursively.
 
 ## cp
 - `cp -v f g` explain what is being done

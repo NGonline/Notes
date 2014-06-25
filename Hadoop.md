@@ -52,4 +52,6 @@ hadoop jar hadoop-*-streaming.jar \
  - 备份那些组成文件系统元数据持久状态的文件，这些写操作是实时同步的，是原子操作。一般将持久状态写入本地磁盘的同时，写入一个远程挂载的网络文件系统（NFS）
  - 运行一个辅助namenode，定期通过比恩及日志合并命名空间镜像，防止编辑日志过大，并在namenode发生故障时启用。辅助namenode保存的状态总是滞后于主节点，所以难免会丢失部分数据，这种情况下一般把存储在NFS上的namenode元数据复制到辅助namenode
 - 设置伪分布式配置时，有两个属性需要注意。fs.default.name设置为hdfs://localhost/，用于设置Hadoop的默认文件系统，HDFS的守护程序将通过该属性来确定namenode的主机及端口；dfs.replication应当设为1，这样HDFS不会按默认设置将文件系统块拷贝数设为3。
-- 
+- ls命令返回的第二列是这个文件的备份数，目录作为元数据保存在namenode中，所以没有备份数。
+- Hadoop有一个抽象的文件系统概念，HDFS只是其中的一个实现。Java抽象类org.apache.hadoop.hs.FileSystem定义了Hadoop中的一个文件系统接口，并且该抽象类有几个具体实现。
+- 尽管运行的MapReduce程序可以访问任何文件系统，但在处理大数据集时，你仍然需要选择一个具有数据本地优化的分布式文件系统，如HDFS或KFS。

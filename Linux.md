@@ -7,6 +7,10 @@
 - `awk '{printf "%s\t%s\n",NR-1,$0}' xxx > ind` add row index to xxx (begin from 0) and redirect to ind
 - `awk 'FNR==m{print}' filename` shows the m-th line
 - `awk 'FNR&gt;=j &amp;&amp; FNR &lt;=k{print}' filename` shows the j-th to the k-th lines
+- multiple files:
+ - `awk 'NR==FNR{...}NR>FNR{...}' file1 file2 或 awk 'NR==FNR{...}NR!=FNR{...}' file1 file2`
+ - `awk 'NR==FNR{...;next}{...}' file1 file2`
+- `awk 'NR==FNR{a[$1]=$2;next}{print $0,a[$2]}' f1 f2`, `a` is a hash map
 
 ## less
 - If you want to view really large file, you will want to view it in a program which is as fast as possible.

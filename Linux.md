@@ -53,18 +53,42 @@ dd --- delete the current line
 # Bash
 - Any command which you type is not executed directly, but expanded firstly and only then executed. For example, when you type ls * the star * is expanded into list of all files in current directory.
 - Command output can be used as variables using `$(command)`.
-- Shortcuts in bash:
-| 快捷键 | 作用 |
+- Hot keys in bash:
+| Hot key | effect |
 | - | - |
-| ctrl + a | 光标跳转到行首 |
-| ctrl + e | 光标跳转到行末 |
-| ctrl + u | 删除从行首到光标之前的部分 |
-| ctrl + k | 删除从光标所在位置到行末的部分 |
-| ctrl + w | 删除光标之前的单词 |
-| ctrl + y | 常配合上面三条命令一起使用，将它们删除的部分粘贴到光标所在位置 |
-| ctrl + r | 反向搜索执行过的命令 |
-| alt + f | 以单词为单位，向前移动光标 |
-| alt + b | 以单词为单位，向后移动光标 |
+| Ctrl + a | Go to the beginning of the line (Home) |
+| Ctrl + e | Go to the End of the line (End) |
+| Alt + b | Back (left) one word |
+| Alt + f | Forward (right) one word |
+| Ctrl + f | Forward one character |
+| Ctrl + b | Backward one character |
+| Ctrl + xx | Toggle between the start of line and current cursor position |
+| Ctrl + l | Clear the Screen, similar to the clear command |
+| Ctrl + u | Cut/delete the line before the cursor position |
+| Ctrl + k | Cut the Line after the cursor to the clipboard |
+| Alt + Del | Delete the Word before the cursor |
+| Alt + d | Delete the Word after the cursor |
+| Ctrl + w | Cut the Word before the cursor to the clipboard. |
+| Alt + t | Swap current word with previous |
+| Ctrl + t | Swap the last two characters before the cursor (typo) |
+| Esc + t | Swap the last two words before the cursor |
+| ctrl + y | Paste the last thing to be cut (yank) |
+| Alt + u | UPPER capitalize every character from the cursor to the end of the current word |
+| Alt + l | Lower the case of every character from the cursor to the end of the current word |
+| Alt + c | Capitalize the character under the cursor and move to the end of the word |
+| Alt + r | Cancel the changes and put back the line as it was in the history (revert) |
+| ctrl + _ | Undo |
+| Ctrl + s | Stop output to the screen (for long running verbose commands), XOFF ASCII character |
+| Ctrl + q | Allow output to the screen (if previously stopped using command above), XON ASCII character |
+| Ctrl + r | Recall the last command including the specified character(s) (equivalent to : vim ~/.bash_history) |
+| !! | Repeat last command |
+| !abc | Run last command starting with abc |
+| !abc:p | Print last command starting with abc |
+| !$ | Last argument of previous command |
+| !* | All arguments of previous command |
+| ^abc­^­def | Run previous command, replacing abc with def |
+| Ctrl + d | Send an EOF marker, unless disabled by an option, this will close the current shell (EXIT) |
+| Ctrl + z | Send the signal SIGTSTP to the current task, which suspends it. To return to it later enter fg 'process name' (foreground). |
 
 - shell常见通配符：
 | 字符 | 含义 | 实例 |

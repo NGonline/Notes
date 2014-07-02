@@ -1138,9 +1138,9 @@ Collection.addAll(collection,moreInts);
 // Explicit type argument specification
 List<Base> obj = Arrays.<Base>asList(new Derived1(), new Derived2());
 ```
-`Collections.addAll() works fine because it knows from the first argument what the target type is.
-- Maps are more complex. The Java standard library does not provide any way to automatically initialize them, except from the contents of another map.
+`Collections.addAll()` works fine because it knows from the first argument what the target type is. The behavior of this convenience method is identical to that of `c.addAll(Arrays.asList(elements))`, but this method is likely to run significantly faster under most implementations.
 
+- Maps are more complex. The Java standard library does not provide any way to automatically initialize them, except from the contents of another map.
 - The `fill()` just duplicates a single object reference throughout the container, and only works for `List` objects. But the resulting list can be passed to a constructor or to an `addAll()` method, which is part of every `Collection` subtype:
 ```
 List<Integer> list = new ArrayList<Integer>(Collections.nCopies(4, 1));
@@ -1491,7 +1491,8 @@ LinkedHashMap<Integer,String> linkedMap = new LinkedHashMap<Integer,String>(16, 
 - `emptyList()`, `emptyMap()`, and `emptySet()` returns an immutable empty container. These are generic, so the result will be parameterized to the desired type.
 - If you sort using a `Comparator`, you must `binarySearch()` using the same `Comparator`.
 - `singleton(T x)`, `singletonList(T x)`, and `singletonMap(K key, V value)` produces an immutable container with a single entry.
-- `copy(List<? super T>, List<? extends T>)` won't erase the extra entries if `dest` is longer than `src`.
+- `copy(List<? super T>, List<? extends T>)` won't erase the extra entries if `dest` is longer than `src`. Note that constructors like `new ArrayList(int)` indicate initial capacity, the size is still 0. It will probably throws an `IndexOutOfBoundException` when used as `dest`.
+- `new ArrayList(a)` and `Collections.copy(b, a)` only do a shallow copy. The difference is, that the constructor allocates new memory, and `copy(...)` does not,
 - You can pass the original container into a method that hands back a read-only version:
 ```
 Set<String> c = Collections.unmodifiableSortedSet(new TreeSet<String>(data));

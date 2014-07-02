@@ -97,6 +97,11 @@ dd --- delete the current line
 ## &
 - If a command is terminated by the control operator `&`, the shell executes the command in the background in a subshell
 
+## ' and "
+- `"` will expand the variable and command in "\`" of after "$", `'` will not
+- `"` allows backslash escape, `'` doesn't. The backslash retains its special meaning only when followed by one of the following characters: "$", "`", "\"", "\", or "newline".
+- `$''` are treated as ANSI-C quoting, with more bachslash-escaped characters.
+
 ## Redirection
 - stdin is 0, stdout is 1, stderr is 2
 - `command > file` redirect the output and rewrite the file
@@ -128,6 +133,7 @@ dd --- delete the current line
 - `echo Hello, $LOGNAME!` tells your shell to output a string `Hello, $LOGNAME!`, substituting `$LOGNAME` with environment variable $LOGNAME which happens to contain your login.
 - `echo 'echo Hello, $LOGNAME!' >> .profile` add a line to **.profile**. Note that it will add a '\n' at first.
 - `echo 'xxx' > f` replace instead of pending
+- `echo -e` enables backslash escape. The default setting disables this. `echo "a\tb"` will actually print `a\tb`
 
 ## history
 - `history -w` writes all your command history to .bash_history file. Normally this is done at the end of your session, when you close it by typing exit or by pressing <CTRL>+D.
@@ -183,7 +189,7 @@ dd --- delete the current line
 - generate random permutation of lines to standard output
 
 ## sort
-- Note that "\t" doesn't work fine in some implementation of `sort`. `sort -t $'\t' -o Density10m -k 2rn part-00000` only works for bash. `"Ctrl-v<tab>"` also works.
+- Note that "\t" doesn't work fine in some implementation of `sort`. `sort -t $'\t' -o Density10m -k 2rn part-00000` only works for bash. The dollar sign tells bash to use ANSI-C quoting. `"Ctrl-v<tab>"` also works.
 
 ## tail
 - `tail -n 5 .profile` prints out exactly five last lines from .profile file

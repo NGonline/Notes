@@ -56,6 +56,8 @@ dd --- delete the current line
 - Hot keys in bash:
 | Hot key | effect |
 | - | - |
+| Ctrl + p | Previous command (Up arrow) |
+| Ctrl + n | Next command (Down arrow) |
 | Ctrl + a | Go to the beginning of the line (Home) |
 | Ctrl + e | Go to the End of the line (End) |
 | Alt + b | Back (left) one word |
@@ -151,7 +153,11 @@ dd --- delete the current line
 - Change the file owner and group.
 
 ## date
-- `$ date -d "2012-04-10 -1 day" +%Y-%m-%d` returns 2012-04-09
+- `date -d "2012-04-10 -1 day" +%Y-%m-%d` returns 2012-04-09
+
+## diff
+- `diff file1 file2` shows the difference of file2 to file1
+- `diff -u` shows the lines of unified context.
 
 ## echo
 - `echo Hello, $LOGNAME!` tells your shell to output a string `Hello, $LOGNAME!`, substituting `$LOGNAME` with environment variable $LOGNAME which happens to contain your login.

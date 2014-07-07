@@ -25,6 +25,7 @@
 - To print lines matching a pattern. It will search the standard input if no files (or a single `-`) are named. e.g. `command |grep XXX`
 - `-v` choose the lines without pattern
 - `-i` ignores case distinction
+- `grep` patterns are matched against individual lines so there is no way for a pattern to match a newline found in the input.
 
 ## sed
 - `sed 's/pattern/replace/option'` is a stream editor for filtering and transforming text.

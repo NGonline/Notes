@@ -156,6 +156,9 @@ dd --- delete the current line
 ## date
 - `date -d "2012-04-10 -1 day" +%Y-%m-%d` returns 2012-04-09
 
+## df
+- `df -h dir` show the disk usage of the dir
+
 ## diff
 - `diff file1 file2` shows the difference of file2 to file1
 - `diff -u` shows the lines of unified context.
@@ -178,6 +181,9 @@ dd --- delete the current line
 - Note that **-l** shows the size of the directory in *blocks*.
 - `ls -tr` mean that file list is sorted by time in reverse direction. This means that most recently created and modified files are printed last.
 - `ll` is a common alias to `ls -l`
+
+## lzop
+- `lzop file` compress, `lzop -x file` extract
 
 ## man
 - `man -K` will search for text in all manual pages. This is a brute-force search. The result will be shown one manual after another.
@@ -220,7 +226,12 @@ dd --- delete the current line
 - generate random permutation of lines to standard output
 
 ## sort
+- start from 1
 - Note that "\t" doesn't work fine in some implementation of `sort`. `sort -t $'\t' -o Density10m -k 2rn part-00000` only works for bash. The dollar sign tells bash to use ANSI-C quoting. `"Ctrl-v<tab>"` also works.
+
+## tar
+- `tar cf log.tar file.log` compress
+- `tar xf file.tar` unpack
 
 ## tail
 - `tail -n 5 .profile` prints out exactly five last lines from .profile file

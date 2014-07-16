@@ -248,9 +248,10 @@ dd --- delete the current line
 
 ## wc
 - Reads either standard input or a list of files, and generates: newline count (**-l**), word count (**-w**), byte count (**-c**), length of the longest line (**-L**).
+- `cat filename | wc -l` will eliminate the filename in the output.
 
 ## xargs
-- xargs reads items from the standard input, delimited by blanks (which can be protected with double or  single  quotes or a backslash) or newlines, and executes the command (default is /bin/echo) one or more times with any initial-arguments followed by items read from standard input.  Blank lines on the standard input are ignored.
+- xargs reads items from the standard input, delimited by blanks (which can be protected with double or single quotes or a backslash) or newlines, and executes the command (default is /bin/echo) one or more times with any initial-arguments followed by items read from standard input. Blank lines on the standard input are ignored.
 
 ## crontab
 

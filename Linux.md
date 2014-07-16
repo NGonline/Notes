@@ -25,6 +25,7 @@
 - To print lines matching a pattern. It will search the standard input if no files (or a single `-`) are named. e.g. `command |grep XXX`
 - `-v` choose the lines without pattern
 - `-i` ignores case distinction
+- '{' and '(' need to escape in the regex
 - `grep` patterns are matched against individual lines so there is no way for a pattern to match a newline found in the input.
 
 ## sed
@@ -173,6 +174,9 @@ dd --- delete the current line
 - `history -w` writes all your command history to .bash_history file. Normally this is done at the end of your session, when you close it by typing exit or by pressing <CTRL>+D.
 - If you prepend a command with space it won't be saved in history.
 
+## kinit
+- obtain and cache Kerberos ticket-granting ticket
+
 ## ln
 - `ln t l` creates a link to `t` with the name `l`. It differs from `cp` in not copying the contents of the file.
 
@@ -227,7 +231,7 @@ dd --- delete the current line
 
 ## sort
 - start from 1
-- Note that "\t" doesn't work fine in some implementation of `sort`. `sort -t $'\t' -o Density10m -k 2rn part-00000` only works for bash. The dollar sign tells bash to use ANSI-C quoting. `"Ctrl-v<tab>"` also works.
+- Note that "\t" doesn't work fine in some implementation of `sort`. `sort -t $'\t' -o Density10m -k 2,2rn part-00000` only works for bash. The dollar sign tells bash to use ANSI-C quoting. `"Ctrl-v<tab>"` also works.
 
 ## tar
 - `tar cf log.tar file.log` compress
@@ -244,6 +248,9 @@ dd --- delete the current line
 
 ## wc
 - Reads either standard input or a list of files, and generates: newline count (**-l**), word count (**-w**), byte count (**-c**), length of the longest line (**-L**).
+
+## xargs
+- xargs reads items from the standard input, delimited by blanks (which can be protected with double or  single  quotes or a backslash) or newlines, and executes the command (default is /bin/echo) one or more times with any initial-arguments followed by items read from standard input.  Blank lines on the standard input are ignored.
 
 ## crontab
 

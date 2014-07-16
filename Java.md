@@ -1396,6 +1396,7 @@ Changes of `mid` or `head` or `tail` will be reflected in the original `sortedSe
 
 ## Map
 - You can test a `Map` to see if it contains a key or a value with `containsKey()` and `containsValue()`.
+- Looking for nonexistent key in a map returns `null`.
 - It is quit easy to combine containers to quickly produce powerful data structures, like `Map<Person, List<Pet>>`.
 - The standard Java library contains: `HashMap`, `TreeMap`, `LinkedHashMap`, `WeakHashMap`, `ConcurrentHashMap`, and `IdentityHashMap`
 - Any key must have an `equals()` method.
@@ -2066,7 +2067,7 @@ catch(NoSuchFieldException e){
 - If a `RuntimeException` gets all the way out to `main()` without being caught, `printStackTrace()` is called for that exception as the program exits.
 - They help in the debugging process.
 
-## Performing Cleanup with `finally`
+## Performing Cleanup with finally
 - C++ exception handling does not have the `finally` clause because it relies on destructors to accomplish this short of cleanup.
 - The `finally` clause always runs. If you place your `try` block in a loop, you can establish a condition that must be met before you continue the program.
 ```

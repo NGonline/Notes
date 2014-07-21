@@ -66,6 +66,18 @@ String s;
 ```
 - The usual exception is primitive data types, you actually pass by value of them.
 - If you don't want the returned member object to be modified (usually private members), you must return a full copy of it (you could use `Clonable` interface and clone method if your class defines it).
+```
+public Object clone(){
+    CloneClass o = null;
+    try{
+        o = (CloneClass)super.clone();
+        o.fields = xxx;
+    } catch(CloneNotSupportedException e){
+        e.printStackTrace();
+    }
+    return o;
+}
+```
 
 ## Primitive Type
 - Instead of creating the variable by using `new`, an "automatic" variable is created that is not a reference.
@@ -378,6 +390,7 @@ public static void main(String[] args) throws Exception{
 - Regardless of what type of array you're working with, the array identifier is actually a reference to a true object that's created on the heap.
 - All arrays have an intrinsic member `length`. `length` can only tell you how many elements can be placed in the array.
 - For returning multiple results, languages like C and C++ are difficult to return an array because it becomes messy to control the lifetime of the array. In Java, you just return the array.
+- Note that all arrays are considered to implement the interface `clonable`.
 
 ## Initialization
 - When creating an array of objects, you are really creating an array of references, and each of those references is automatically initialized to `null`.
@@ -1183,7 +1196,7 @@ The key and value fields are made `public` and `final` so that Pair becomes a re
 - Note that unsupported operations are only detectable at run time, and therefore represent dynamic type checking.
 - `Arrays.asList()` produces a `List` that is backed by a fixed-size array. You can always pass the result of it as a constructor argument to any `Collection`, but the only supported operations are the ones that don't change the size of the array.
 - The "unmodifiable" methods in the `Colletions` class wrap the container in a proxy that produces an `UnsopportedOperationException` to produce a constant container object.
-- `Arrays.asList()` return s a fixed-sized `List`, whereas `Collections.unmodifiableList()` produces a list that cannot be changed.
+- `Arrays.asList()` returns a fixed-sized `List`, whereas `Collections.unmodifiableList()` produces a list that cannot be changed.
 - The documentation for a method that takes a container as an argument should specify which of the optional methods must be implemented.
 
 ## Iterator
@@ -3340,6 +3353,8 @@ BufferedReader in = new BufferedReader(new FileReader(filename));
 ```
 `BufferedReader` provides `readLine()` and if it returns `null`, you're at the end of the file. Note that it will delete the line break.
 
+- `FileReader` use the default charset of the system. If you want to select some decoding charset, use `new BufferedReader(new InputStreamReader(new FileInputStream(fileName), charset));`
+
 ### Input from Memory
 - `BufferedInputFile.read()` is used to create a `StringReader`, whose `read()` method returns the next character as an `int`:
 ```
@@ -4312,6 +4327,7 @@ System.out.println(f.format(1.135)); // 1.14
 
 ### Basics
 - '\\\\' means regular expression backslash. If you want to insert a literal backslash, use '\\\\\\\\' (first parse to regex '\\\\', second parse to '\\')
+- '\t' and '\\t' can both be compiled to tab in regular expression. The first one is escaped to '<tab>' before regex compilation, and the second one is first escaped to '\t'.
 - A complete list of constructs for building regular expressions can be found in the JDK documentation for **java.util.regex.Pattern**
 | Character | Meaning |
 | - | - |

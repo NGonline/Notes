@@ -164,6 +164,9 @@ dd --- delete the current line
 - `diff file1 file2` shows the difference of file2 to file1
 - `diff -u` shows the lines of unified context.
 
+## du
+- show size of file. `-h` print the size in human readable format
+
 ## echo
 - `echo Hello, $LOGNAME!` tells your shell to output a string `Hello, $LOGNAME!`, substituting `$LOGNAME` with environment variable $LOGNAME which happens to contain your login.
 - `echo 'echo Hello, $LOGNAME!' >> .profile` add a line to **.profile**. Note that it will add a '\n' at first.

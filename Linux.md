@@ -5,6 +5,7 @@
 ## awk
 - `awk '{print $1, $4}' f` prints the first and fourth colume of `f`
 - `awk '{printf "%s\t%s\n",NR-1,$0}' xxx > ind` add row index to xxx (begin from 0) and redirect to ind
+- `awk 'BEGIN{FS="[|]+";OFS="\t";}'` uses regex as input seperator, and OFS is the output seperator
 - `awk 'FNR==m{print}' filename` shows the m-th line
 - `awk 'FNR&gt;=j &amp;&amp; FNR &lt;=k{print}' filename` shows the j-th to the k-th lines
 - multiple files:
@@ -154,6 +155,9 @@ dd --- delete the current line
 ## chown
 - Change the file owner and group.
 
+## curl
+- To transfer data from or to a server, using one of the supported protocols (HTTP, HTTPS, FTP, FTPS, SCP, SFTP, TFTP, DICT, TELNET, LDAP or FILE).
+
 ## date
 - `date -d "2012-04-10 -1 day" +%Y-%m-%d` returns 2012-04-09
 
@@ -172,6 +176,10 @@ dd --- delete the current line
 - `echo 'echo Hello, $LOGNAME!' >> .profile` add a line to **.profile**. Note that it will add a '\n' at first.
 - `echo 'xxx' > f` replace instead of pending
 - `echo -e` enables backslash escape. The default setting disables this. `echo "a\tb"` will actually print `a\tb`
+
+## find
+- `find /path/ -name xxx`
+- `-iname` ignore upper or lower cases
 
 ## history
 - `history -w` writes all your command history to .bash_history file. Normally this is done at the end of your session, when you close it by typing exit or by pressing <CTRL>+D.
@@ -255,6 +263,11 @@ dd --- delete the current line
 
 ## xargs
 - xargs reads items from the standard input, delimited by blanks (which can be protected with double or single quotes or a backslash) or newlines, and executes the command (default is /bin/echo) one or more times with any initial-arguments followed by items read from standard input. Blank lines on the standard input are ignored.
+
+## zip
+- `zip -r xxx.zip file1 file2 ...`
+- `unzip xxx.zip`
+- jar is packed by zip
 
 ## crontab
 

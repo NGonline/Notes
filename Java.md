@@ -328,6 +328,10 @@ public class PasswordUtils{
     public String encryptPassword(String password){}
 }
 ```
+- If there is only one element in an annotation, it must be named as `value()`. And you can skip its name and `=` when using this annotation:
+```
+@NeedTest(true) 
+```
 - An annotation without any elements is called a marker annotation.
 - Allowed types for annotation elements:
  - All primitives;
@@ -344,7 +348,7 @@ public class PasswordUtils{
 - Java SE5 provides extensions to the reflection API to help you create annotation processors.
 ```
 import java.lang.reflect.*;
-public static voi trackUseCases(Class<?> cl){
+public static void trackUseCases(Class<?> cl){
     for(Method m : cl.getDeclaredMethods()){
         UseCase uc = m.getAnnotation(UseCase.class);
         if(uc != null){ // none such annotation returns null
@@ -4359,6 +4363,7 @@ System.out.println(f.format(1.135)); // 1.14
 ```
 - `split()`, `replaceFirst()`, and `replaceAll()` are useful with regular expressions.
 - Many regular expression operations take `CharSequence` arguments (interface for `CharBuffer`, `String`, `StringBuffer`, `StringBuilder`).
+- `(?!)` means look-ahead assertion. `"(?!000|001)\\d{3}"` matches all three-digit string except "000" and "001".
 
 ### Quantifiers
 - A quantifier describes the way that a pattern absorbs input text:

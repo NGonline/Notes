@@ -1109,6 +1109,7 @@ public class Outer{
 2. You need to make more than one object of that class.
 
 # Concurrency
+- Concurrency is arguably deterministic but effectively nondeterministic. You may not be able to write test code that will generate failure conditions for your concurrent program.
 - One of the convenient features of concurrency at the language level is that the programmer doesn't need to worry about whether there are many processors or just one.
 
 # Containers

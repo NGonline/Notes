@@ -1111,6 +1111,18 @@ public class Outer{
 # Concurrency
 - Concurrency is arguably deterministic but effectively nondeterministic. You may not be able to write test code that will generate failure conditions for your concurrent program.
 - One of the convenient features of concurrency at the language level is that the programmer doesn't need to worry about whether there are many processors or just one.
+- Java is a multithreaded language, and concurrency issues are present whether you are aware of them or not. The problems that you solve with concurrency can be roughly classified as "speed" and "design manageability".
+- Concurrency can often improve the performance of programs running on a single processor.
+ - From a performance standpoint it makes no sense to use concurrency on a single-processor machine unless one of the tasks might block.
+ - Event-driven programming: without concurrency, the only way to produce a responsive user interface is for all tasks to periodically check for user input. By creating a separate thread of execution to respond to user input, even though this thread will be blocked most of the time, the protgram guarantees a certain level of responsiveness.
+- Processes are very attractive because the operating system usually isolates one process from another so they cannot interfaere with each other, which makes programming with processes relatively easy. In functional languages, each function call produces no side effects and can thus be driven as an independent task.
+- The fundamental difficulty in writing multithreaded programs is coordinating the use of share resources between different thread-driven tasks. Threading creates tasks within the single process. One advantage that this provided was operating system transparency (for early systems that did not support multitasking).
+- The design of your program (like simulations) can be greatly simplified. They generally imvolve many interacting elements, each with "a mind of its own".
+- Java's threading is preemptive, which means that a scheduling mechanism provides time slices for each thread. So you can generally assume that you will not have enough threads available to provice one for each element in a large simulation. A typical approach is the use of cooperative multithreading.
+- In general, threads enable you to create a more loosely coupled design.
+
+## Basic Threading
+- 
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

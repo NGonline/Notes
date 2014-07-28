@@ -4367,8 +4367,8 @@ System.out.println(f.format(1.135)); // 1.14
 | W | non-word characters|
 | s | whitespace character |
 | S | non-whitespace character |
-| b | word boundary |
-| B | non-word boundary |
+| b | word boundary (every position where one side is \\w, and another is not) |
+| B | non word boundary (every position where \\b not) |
 | G | end of the previous match |
 ```
 `-?\\d+` // integer number.
@@ -4412,6 +4412,27 @@ public class Test{
 }
 ```
 - Groups are regular expressions set off by parentheses that can be called up later: `A(B(C))D` has three groups, group 0 is `ABCD`, group 1 is `BC`, group 2 is `C`. `group(int)` returns the given group number during the previous match operation. If the match was successful, but the group failed to match any part, then `null` is returned.
+- `(?:)` act like plain `()` but won't generate new group:
+```
+Pattern pattern = Pattern.compile("(?:ab)");
+Matcher m = pattern.matcher("c(ab)abc");
+if(m.find()){
+    System.out.println(m.group(0)); // ab
+    System.out.println(m.group(1)); // IndexOutOfBoundsException
+}
+Pattern pattern = Pattern.compile("\\(ab\\)");
+Matcher m = pattern.matcher("c(ab)abc");
+if(m.find()){
+    System.out.println(m.group(0)); // (ab)
+    System.out.println(m.group(1)); // IndexOutOfBoundsException
+}
+Pattern pattern = Pattern.compile("(ab)");
+Matcher m = pattern.matcher("c(ab)abc");
+if(m.find()){
+    System.out.println(m.group(0)); // ab
+    System.out.println(m.group(1)); // ab
+}
+```
 - Invoking `start()` or `end()` following an unsuccessful matching operation produces an `IllegalStateException`.
 - Pattern flags:
 | Compile Flag | Effect |
@@ -4770,7 +4791,7 @@ static void changeHiddenVariable(Object a, String variableName) throws Exception
 - In order to use a library, usually you should add the root directory of it to CLASSPATH. You must put the actual name of the JAR file in the classpath, not just the path where it's located.
 - Java will not always look at the current directory. If you don't hava a `.` as one of the paths in the CLASSPATH, Java won't look there.
 - If the names collide, the compiler complains and forces you to be explicit.
-- `import static` imports static methods and fields.
+- `import static` imports static methods and fields of the specified class.
 
 ### Package
 - A package contains a group of classes, organized together under a single namespace. Compilation units with no package names are in the "unnamed" or dafault package.

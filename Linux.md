@@ -53,6 +53,16 @@ o --- insert a line below the current line
 x --- delete the current character
 dd --- delete the current line
 
+## regex
+- `\<` matches begin of a word, `\>` matches end of a word.
+- `?` means literal "?" without escape (unlike java).
+- There is no non-greedy regex in sed, grep, or vi:
+```
+// cancel all tags in html
+sed 's/<[^>]*>//g' xxx.html // true
+sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
+```
+
 # Bash
 - Any command which you type is not executed directly, but expanded firstly and only then executed. For example, when you type ls * the star * is expanded into list of all files in current directory.
 - Command output can be used as variables using `$(command)`.

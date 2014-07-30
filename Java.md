@@ -1368,6 +1368,7 @@ class ToDoList extends PriorityQueue<ToDoList.ToDoItem>{
 ## Set
 - `Set` has the same interface as `Collection`.
 - Elements added to a `Set` must at least define `equals()`. For good programming style, you should always override `hashCode()` when you override `equals()`.
+- Note that the default `toString()` for objects is defined as `getClass().getName() + "@" + Integer.toHexString(hashCode())`. So when some object is reused and you define your own `hashCode()`, the default `toString()` may print different "address" for the same object.
 ```
 class SetType{
     int i;

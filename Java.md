@@ -191,7 +191,7 @@ public class T {
 
 ### Bitwise Operators
 - The `boolean` type is treated as a one-bit value.
-- `~` takes one's complement operation.
+- `~` takes one's complement operation. The operands must be integral types. If they are `byte`, `short`, or `char`, they will be converted to `int` before producing a value.
 
 ### Shift Operators
 - They can be used solely with primitive, integral types.
@@ -203,7 +203,7 @@ b >>>= 10;  // still 11111111 (promoted to int)
 Integer.toBinaryString(b);  // will print binary code for -1 (promoted to int)
 b = 10<<2;  // ok
 int a = 1;
-b = a<<2;   // error
+b = a<<2;   // error (cannot convert int to byte)
 ```
 ### Casting Operators
 - In Java, casting is safe, with the exception of narrowing conversion. Here the compiler forces you to use a cast. With a widening conversion an explicit cast is not needed.

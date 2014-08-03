@@ -1122,6 +1122,57 @@ public class Outer{
 - In general, threads enable you to create a more loosely coupled design.
 
 ## Basic Threading
+- Your code does not need to know whether it is running on a single CPU or many. Thus, using threads is a way to create trasparently scalable programs.
+
+### Defining Tasks
+- Often, `run()` is cast in the form of an infinite loop, which means that, barring some factor that causes it to terminate, it will continue forever.
+```
+public class LiftOff implements Runnable {
+    protected int countDown = 10;
+    private static int taskCount = 0;
+    private finale int id = taskCount++;
+    public LiftOff(int countDown) {
+        this.countDown = countDown;
+    }
+    public String status() {
+        return "#" + id + "(" + (countDown > 0 ? countDown : "Liftoff!") + "), ";
+    }
+    public void run() {
+        while (countDown-- > 0) {
+            System.out.println();
+            Thread.yield();
+        }
+    }
+}
+```
+- To achieve threading behavior, youmust explicitly attach a task to a thread:
+```
+public class MainThread {
+    public static void main(String[] args) {
+        LiftOff launch = new LiftOff(10);
+        launch.run();   // using the thread for main()
+    }
+}
+```
+- `yield()` turns running thread into runnable status, and the scheduler will choose one from all runnable threads. `yield()` is just a hint, and it's still possible to switch on places other than that. So it's rarely appropriate to use, usually used for debugging and reproducing race conditions.
+
+### The Thread Class
+- The traditional way to turn a `Runnable` object into a working task it to hand it to a `Thread` constructor.
+```
+public class BasicThread {
+    public static void main(String[] args) {
+        for(int i=0; i<5; i++)
+            new Thead(new LiftOf()).start();
+        System.out.println("Waiting for LiftOff");  // appears at first
+    }
+}
+```
+`start()` quickly returns. Any thread can start another thread.
+
+- The thread-scheduling mechanism is not deterministic. An earlier JDK didn't time-slice very often. The best approach is to be as conservative as possible while writing threaded code.
+- When `main()` creates the `Thread` objects, it isn't capturing the references for any of them. Each `Thread` registers itself so there is actually a reference to it someplace, and the garbage collector can't clean it up until the task exits its `run()` and dies.
+
+## Basic Threading
 - 
 
 # Containers

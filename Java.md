@@ -1162,7 +1162,7 @@ public class MainThread {
 public class BasicThread {
     public static void main(String[] args) {
         for(int i=0; i<5; i++)
-            new Thead(new LiftOf()).start();
+            new Thread(new LiftOf()).start();
         System.out.println("Waiting for LiftOff");  // appears at first
     }
 }
@@ -1172,8 +1172,25 @@ public class BasicThread {
 - The thread-scheduling mechanism is not deterministic. An earlier JDK didn't time-slice very often. The best approach is to be as conservative as possible while writing threaded code.
 - When `main()` creates the `Thread` objects, it isn't capturing the references for any of them. Each `Thread` registers itself so there is actually a reference to it someplace, and the garbage collector can't clean it up until the task exits its `run()` and dies.
 
-## Basic Threading
-- 
+### Executor
+- `Executor`s are the preferred method for starting tasks in Java SE5/6. They allow you to manage the execution of asynchronous tasks without having to explicitly manage the lifecycle of threads.
+- The `Runnable` object acts like the Command design pattern, it exposes a single method to be executed:
+```
+public class CachedThreadPool {
+    public static void main(String[] args) {
+        ExecutorService exec = Executors.newCachedThreadPool();
+        for(int i=0; i<5; i++)
+            exec.execute(new LiftOff());
+        exec.shutdown();
+    }
+}
+```
+The call to `shutdown()` prevents new tasks from being submitted to that `Executor`.
+
+- With the `FixedThreadPool`, you do expensive thread allocation once, up front, and you thus limit the number of threads. It's useful in an event-driven system. Event handlers require threads can be serviced as quickly as you want by simply fetching threads from the pool.
+- Note that in any of the thread pools, existing threads are automatically reused when possible. `CachedThreadPool` will generally create as many thread as it needs during the execution and then will stop creating new thread as it recycles the old ones. So it's a reasonable first chuice as an `Executor`. If it causes problems, you need to switch to a `FixedThreadPoool` (usually in production code).
+- `SingleThreadExecutor` is useful for anything you want to run in another thread continually, or short tasks that you want to run in a thread (e.g. log updating or event-dispatching). If more than one task is submitted, they will be queued and each task will run to completion before the next task is begun, all using the same thread.
+- Suppose you have a number of threads running tasks that use the file system, you can run with a `SingleThreadExecutor` to ensure that only one task at a time is running. You don't need to deal with synchronizing on the shared resource. By serializing tasks, you can eliminate the need to serialize the objects.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

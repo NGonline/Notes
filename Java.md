@@ -602,7 +602,7 @@ class Soup{
 - Putting a `main()` in each class allows easy testing for each class. Even if you have a lot of classes in a program, only the `main()` for the class invoked on the command line will be called. Even if a class has package access, a `public main()` is accessible.
 
 ## Constructor
-- If you create a class that has no constructors, the compiler will automatically create a default constructor for you. Otherwise, it will not synthesize one.
+- If you create a class that has no constructors, the compiler will automatically create a default constructor for you (including abstract class). Otherwise, it will not synthesize one.
 - The synthesized default constructor is automatically given the same access as the class.
 - In a constructor, the `this` keyword can be used to make an explicit call to the constructor that matches the argument list:
 ```
@@ -697,6 +697,7 @@ public class AutoboxingVarargs{
 - If you create an object of an abstract class, you will get an error message from the compiler.
 - It's possible to make a class `abstract` without including any `abstract` methods.
 - Abstract classes are also useful refactoring tools, since they allow you to easily move common methods up the inheritance hierarchy.
+- You can't instantiate an abstract class, but you can still define constructors for it. If you don't, the compiler will still synthesize a default one.
 
 ## Interface
 - I believe that an interface should have more meaning than a mechanical duplication of method combinations, so I tend to wait until I see the value added by an interface before creating one.

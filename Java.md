@@ -104,6 +104,7 @@ public static void main(String[] args){
     f(b);   // error
 }
 ```
+- `double` will overflow to `Double.POSSITIVE_INFINITY` (`Double.NEGATIVE_INFINITY`). It's greater (smaller) than all double values except itself and `NaN`.
 - `POSSITIVE_INFINITE` (`NEGTIVE_INFINITE`) in float-point primitive types are guarenteed to be greater (smaller) than other values except for `NaN`.
 - All comparison with `NaN` return `false`. Note that divide by 0 throws an exception rather than returns `NaN`
 
@@ -377,7 +378,6 @@ public static void main(String[] args) throws Exception{
     OSExecute.command("java TestProcessor ClassToBeTested1 ClassToBeTested2 ...");
 }
 ```
-
 
 # Array
 - A Java array is guaranteed to be initialized and cannot be accessed outside of its range.
@@ -1124,6 +1124,7 @@ public class Outer{
 
 ## Basic Threading
 - Your code does not need to know whether it is running on a single CPU or many. Thus, using threads is a way to create trasparently scalable programs.
+- Exceptions won't propagate across threads back to `main()`, you must locally handle any exceptions that arise within a task.
 
 ### Defining Tasks
 - Often, `run()` is cast in the form of an infinite loop, which means that, barring some factor that causes it to terminate, it will continue forever.
@@ -1155,7 +1156,22 @@ public class MainThread {
     }
 }
 ```
-- `yield()` turns running thread into runnable status, and the scheduler will choose one from all runnable threads. `yield()` is just a hint, and it's still possible to switch on places other than that. So it's rarely appropriate to use, usually used for debugging and reproducing race conditions.
+- `yield()` turns running thread into runnable status, and the scheduler will choose one from all runnable threads with the same priority. `yield()` is just a hint, and it's still possible to switch on places other than that. So it's rarely appropriate to use, usually used for debugging and reproducing race conditions. You can't rely on `yield()` for any serious control or tuning of your application. Indeed, it is often used incorrectly.
+- `sleep()` can block the task for a given time. Java SE5 introduced the more readable version of it as part of the `TimeUnit` class:
+```
+TimeUnit.MILLISECONDS.sleep(100);
+```
+- When multiple threads call `sleep()` simultaneously, the block time won't aggregate. But it's probable that block time is a bit longer than specified because of scheduling strategy.
+- Setting a variable to be `volatile` ensures that no compiler optimizations are performed. Although console printing is expensive, it doesn't get interrupted, whereas expensive math calculation can be interrupted:
+```
+private volatile double d;
+public void run() {
+    for(int i=0; i<10000; i++) {
+        d += (Math.PI + Math.E) / (double)i;
+        Thread.yield();
+    }
+}
+```
 
 ### The Thread Class
 - The traditional way to turn a `Runnable` object into a working task it to hand it to a `Thread` constructor.
@@ -1172,6 +1188,34 @@ public class BasicThread {
 
 - The thread-scheduling mechanism is not deterministic. An earlier JDK didn't time-slice very often. The best approach is to be as conservative as possible while writing threaded code.
 - When `main()` creates the `Thread` objects, it isn't capturing the references for any of them. Each `Thread` registers itself so there is actually a reference to it someplace, and the garbage collector can't clean it up until the task exits its `run()` and dies.
+- In very simple cases, you may want to use the alternative approach of inheriting directly form `Thread`:
+```
+public class SimpleThread extends Thread {
+    private int countDown = 5;
+    private static int threadCount = 0;
+    public SimpleThread() {
+        super(Integer.toString(++threadCount)); // thread name
+        start();
+    }
+    public void run() {
+        // ...
+    }
+    public static void main(String[] args) {
+        for(int i=0; i<5; i++)
+            new SimpleThread();
+    }
+}
+```
+- Another idiom is the self-managed `Runnable`:
+```
+public class SelfManaged implements Runnable {
+    private Thread t = new Thread(this);
+    public SelfManaged() { t.start(); }
+    public void run() {
+        // ...
+    }
+}
+```
 
 ### Executor
 - `Executor`s are the preferred method for starting tasks in Java SE5/6. They allow you to manage the execution of asynchronous tasks without having to explicitly manage the lifecycle of threads.
@@ -1192,12 +1236,120 @@ The call to `shutdown()` prevents new tasks from being submitted to that `Execut
 - Note that in any of the thread pools, existing threads are automatically reused when possible. `CachedThreadPool` will generally create as many thread as it needs during the execution and then will stop creating new thread as it recycles the old ones. So it's a reasonable first chuice as an `Executor`. If it causes problems, you need to switch to a `FixedThreadPoool` (usually in production code).
 - `SingleThreadExecutor` is useful for anything you want to run in another thread continually, or short tasks that you want to run in a thread (e.g. log updating or event-dispatching). If more than one task is submitted, they will be queued and each task will run to completion before the next task is begun, all using the same thread.
 - Suppose you have a number of threads running tasks that use the file system, you can run with a `SingleThreadExecutor` to ensure that only one task at a time is running. You don't need to deal with synchronizing on the shared resource. By serializing tasks, you can eliminate the need to serialize the objects.
+- The `Callable` interface introduced in Java SE5 is generic with a type parameter representing the return value. It must be invoked using an `ExecutorService submit()` method:
+```
+class TaskWithResult implements Callable<String> {
+    private int id;
+    public TaskWithResult(int id) {
+        this.id = id;
+    }
+    public String call() {
+        return id;
+    }
+}
+public class CallableDemo {
+    public static void main(String[] args) {
+        ExecutorService exec = Executors.newCachedThreadPool();
+        ArrayList<Future<String>> results = new ArrayList<Future<String>>();
+        for(int i=0; i<10; i++)
+            results.add(exec.submit(new TaskWithResult(i)));
+        for(Future<String> fs : results)
+            try {
+                System.out.println(fs.get());
+            } catch(InterruptedException e) {
+                System.out.println(e);
+                return;
+            } catch(ExecutionException e) {
+                System.out.println(e);
+            } finally {
+                exec.shutdown();
+            }
+    }
+}
+```
+- The `submit()` method produces a `Future` object. `get()` will block until the result is ready. You an also call `get()` with a timeout, or `isDone()` to see if the task has completed.
+- The overloaded `Executors.callable()` method takes a `Runnable` and produces a `Callable`. `ExecutorService` has some "invoke" methods that run collections of `Callable` objects.
+
+### Priority
+- The scheduler will lean toward running the waiting thread with the highest priority first. But trying to manipulate thread priorities is usually a mistake. If you must control the order of execution of tasks, your best bet is to usee synchronization controls or not to use threads at all.
+- Setting priority in constructor would do no good since the `Executor` has not begun the task at that point:
+```
+public void run() {
+    Thread.currentThread().setPriority(priority);
+    // ...
+}
+```
+- JDK has 10 priority levels, this doesn't map well to many OS. Windows has only 7 levels. The only portable approach is to stick to `MAX_PRIORITY`, `NORM_PRIORITY`, and `MIN_PRIORITY` when adjusting priority levels.
+- `toString()` is overloaded in `Thread`, which prints the thread name, the priority level, and the "thread group" that the thread belongs to. You can get a reference to the `Thread` object that is driving a task, inside that task, by calling `Thread.currentThread()`:
+```
+public String toString() {
+    return Thread.currentThread();
+}
+```
+
+### Daemon Threads
+- A daemon thread is intended to provide a general service in the background as long as the program is running (usually infinite loop). When all of the non-daemon threads complete, the program is terminated, killing all daemon threads in the process. The thread that runs `main()` is non-daemon.
+```
+for(int i=0; i<10; i++) {
+    Thread daemon = new Thread(new SimpleDaemons());
+    daemon.setDaemon(true); // Must call before start()
+    daemon.start();
+}
+System.out.println("All daemons started");  // printed at first
+TimeUnit.MILLISECONDS.sleep(175);   // without this, the daemon threads will be killed soon
+```
+- It's possible to customize the attributes (daemon, priority, name) of threads created by `Executor`s by writing a custom `ThreadFactory`:
+```
+// All Runnable objects passed to execute() will be packed into Thread by ThreadFactory
+public class DaemonTreadFactory implements ThreadFactory {
+    public Thread newThread(Runnable r) {
+        Thread t = new Thread(r);
+        t.setDaemon(true);
+        return t;
+    }
+}
+public class DaemonFromFactory implements Runnable {
+    public void run() {
+        try {
+            while(true) {
+                TimeUnit.MILLISECONDS.sleep(100);
+                System.out.println(Thread.currentThread() + "" + this);
+            }
+        } catch(InterruptedException e) {
+            System.out.println("Interrupted");
+        }
+    }
+    public static void main(String[] args) throws Exception {
+        // set ThreadFactory
+        ExecutorService exec = Executors.newCachedThreadPool(new DaemonThreadFactory());
+        for (int i=0; i<10; i++)
+            exec.execute(new DaemonFomFactory());
+        TimeUnit.MILLISECONDS.sleep(500);
+    }
+}
+```
+- You can do more by creating a new `Executor` utility too:
+```
+public class DaeMonThreadPoolExecutor extends ThreadPoolExecutor {
+    public DaemonThreadPoolExecutor() {
+        super(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, 
+                new SynchronousQueue<Runnable>(), 
+                new DaemonThreadFactory());
+    }
+    public static void main(String[] args) {
+        ExecutorService exec = new DaemonThreadPool Executor();
+        // ...
+    }
+}
+```
+- If a thread is a daemon, then any threads it creates will automatically be daemons.
+- You should be aware that daemon threads will terminate their `run()` methods without executing `finally` clauses. Because you cannot shut daemons down in a nice fashion, they are rarely a good idea.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.
 - The basic types of `Collection` are `List`, `Set`, `Queue`, `Map`.
 - In pre-Java SE5, the compiler allowed you to insert an different type into a container.
-- Normally, the Java compiler will give you a warning if you do not use generics. Annotation `@SuppressWarnings(unchecked)` will suppress the warning. Note that this is placed on the method taht generates the warning, rather than the entire class.
+- Normally, the Java compiler will give you a warning if you do not use generics. Annotation `@SuppressWarnings(unchecked)` will suppress the warning. Note that this is placed on the method that generates the warning, rather than the entire class.
 - If you do not explicitly say what class you are inheriting from, you automatically inherit from `Object`. When you use `get()`, you will get an `Object`.
 - You cannot use primitives with containers.
 - ![Container Taxonomy](http://www.linuxtopia.org/online_books/programming_books/thinking_in_java/TIJ325.png "Container Taxonomy")
@@ -4898,3 +5050,4 @@ static void changeHiddenVariable(Object a, String variableName) throws Exception
 # Reference
 [1]	Thinking in Java Ed.4
 [2]	
+

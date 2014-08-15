@@ -142,7 +142,7 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `$''` are treated as ANSI-C quoting, with more bachslash-escaped characters.
 
 ## Redirection
-- stdin is 0, stdout is 1, stderr is 2
+- stdin is 0, stdout is 1, stderr is 2: `command <0 1>fout 2>ferr`
 - `command > file` redirect the output and rewrite the file
 - `command >> file` append the file
 - `command < file` read the parameter from file
@@ -232,6 +232,9 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `ps -eo pid,tty,user,comm,stime,etime`
 - `--sort` specifies sorting order. Sorting syntax is [+|-]key[,[+|-]key[,...]]. For example: `ps jax --sort=uid,-ppid,+pid`
 - `ps -u | grep [j]ava` will match all process with "java" but not the command itself.
+- In the result of `ps -u`:
+ - RSS: resident set size, the non-swapped physical memory that a task has used (in kiloBytes). (alias rssize, rsz).
+ - VSZ: virtual memory size of the process in KiB (1024-byte units). Device mappings are currently excluded; this is subject to change. (alias vsize).
 - `grep -P "31.22038\t121.41149" fingerprints` or `grep '1.22038'$'\t''121.41149'" fingerprints"` matches '\t'
 
 ## pwd
@@ -260,6 +263,10 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 
 ## tail
 - `tail -n 5 .profile` prints out exactly five last lines from .profile file
+
+## test
+- Check file types and compare values: `test "abc" = "def" ;echo $?`
+- Equivalent to `[]`
 
 ## touch
 - Updates timestamp to current date and time. This means that all time attributes, `st_atime`, `st_mtime` and `st_ctime` are set to current date and time. You may become sure of this by `stat`.

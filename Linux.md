@@ -142,7 +142,7 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `$''` are treated as ANSI-C quoting, with more bachslash-escaped characters.
 
 ## Redirection
-- stdin is 0, stdout is 1, stderr is 2: `command <0 1>fout 2>ferr`
+- stdin is 0, stdout is 1, stderr is 2: `&> file` redirect stdout and stderr to file; `2> file` redirect stdout to file; `2>&1` redirect stderr to stdout; `>&file` redirect stdout to file
 - `command > file` redirect the output and rewrite the file
 - `command >> file` append the file
 - `command < file` read the parameter from file
@@ -159,11 +159,17 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `chmod 751 file`
 - `-R` means recursively.
 
+## chown
+- Change the file owner and group.
+
 ## cp
 - `cp -v f g` explain what is being done
 
-## chown
-- Change the file owner and group.
+## crontab
+- `crontab -e` to edit the config file.
+- `30 7 * * * command` each 7:30 am.
+- `*/1 * * * * command` every minute.
+- `*/3 6-8 * * * command` every three minutes between 6:00 am and 8:00 am.
 
 ## curl
 - To transfer data from or to a server, using one of the supported protocols (HTTP, HTTPS, FTP, FTPS, SCP, SFTP, TFTP, DICT, TELNET, LDAP or FILE).
@@ -285,8 +291,6 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `zip -r xxx.zip file1 file2 ...`
 - `unzip xxx.zip`
 - jar is packed by zip
-
-## crontab
 
 # Files
 

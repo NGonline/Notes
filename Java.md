@@ -1125,6 +1125,8 @@ public class Outer{
 ## Basic Threading
 - Your code does not need to know whether it is running on a single CPU or many. Thus, using threads is a way to create trasparently scalable programs.
 - Exceptions won't propagate across threads back to `main()`, you must locally handle any exceptions that arise within a task.
+- In Java, the `Thread` class by itself does nothing. It drives the task that it's given. Although the name `Runnable` makes it look less important, in fact `Thread` is encapsulation while `Runnable` is the task (which should have been named as `Task` to express a higher concept).
+- Conceptually, we want to avoid mixed concept of task (e.g. `Runnable`) and driving mechanism (e.g. `Thread`). But from an implementation standpoint, it makes sense to separate tasks from threads since threads can be expensive and you must conserve and manage them. Java threading is based on the low-level pthreads approach which comes from C. When immersing into the low-level nature, you must have thoroughly understand everything. To stay at a higher level of abstraction, you must use discipline when writing code.
 
 ### Defining Tasks
 - Often, `run()` is cast in the form of an infinite loop, which means that, barring some factor that causes it to terminate, it will continue forever.
@@ -1216,6 +1218,89 @@ public class SelfManaged implements Runnable {
     }
 }
 ```
+- You should be aware that starting threads inside a constructor can be quite problematic, because another task might start executing before the constructor has completed, which means the task may be able to access the object in an unstable state. This is yet another reason to prefer the use of `Executor`s to the explicit creation of `Thread` objects. 
+- Sometimes it makes sense to hide your threading code inside your class by using an inner class:
+```
+// named inner class, start in inner class:
+class InnerThread1 {
+    private Inner inner;
+    private class Inner extends Thread {
+        Inner(String name) {
+            super(name);
+            start();
+        }
+        public void run() {
+            // ...
+        }
+    }
+    public InnerThread1(String name) {
+        inner = new Inner(name);
+    }
+}
+// anonymous inner class, start in outer class:
+class InnerThread2 {
+    private Thread t;
+    public InnerThread2(String name) {
+        t = new Thread(name) {
+            public void run() {
+                // ...
+            }
+        };
+        t.start();
+    }
+}
+// named inner Runnable, start in inner class:
+class InnerRunnable1 {
+    private Inner inner;
+    private class Inner implements Runnable {
+        Thread t;
+        Inner(String name) {
+            t = new Thread(this, name);
+            t.start();
+        }
+        public void run() {
+            // ...
+        }
+    }
+    public InnerRunnable1(String name) {
+        inner = new Inner(name);
+    }
+}
+// anonymous inner Runnable, start in outer class:
+class InnerRunnable2 {
+    private Thread t;
+    public InnerRunnable2(String name) {
+        t = new Thread(new Runnalbe() {
+            public void run() {
+                // ...
+            }
+        }, name);
+        t.start;
+    }
+}
+// anonymous inner class, start in a separate method
+class ThreadMethod {
+    private Thread t;
+    public ThreadMethod(String name) {
+        // ...
+    }
+    public void runTask() {
+        if(t == null) {
+            t = new Thread(name) {
+                public void run() {
+                    // ...
+                }
+            };
+            t.start();
+        }
+    }
+    public static void main(String[] args) {
+        new ThreadMethod("xx").runTask();
+    }
+}
+```
+- Most of the time the reason for creating a thread is only to use the `Thread` capabilities, so it's not necessary to create a named inner class.
+- If the thread is only performing an auxiliary operation rather than being fundamental to the class, a separate method is probably a more useful and appropriate approach than starting a thread inside the constructor of the class.
 
 ### Executor
 - `Executor`s are the preferred method for starting tasks in Java SE5/6. They allow you to manage the execution of asynchronous tasks without having to explicitly manage the lifecycle of threads.
@@ -1344,6 +1429,121 @@ public class DaeMonThreadPoolExecutor extends ThreadPoolExecutor {
 ```
 - If a thread is a daemon, then any threads it creates will automatically be daemons.
 - You should be aware that daemon threads will terminate their `run()` methods without executing `finally` clauses. Because you cannot shut daemons down in a nice fashion, they are rarely a good idea.
+- Creating a responsive user interface:
+```
+public class ResponsiveUI extends Thread {
+    private staic volatile double d = 1;
+    public ResponsiveUI() {
+        setDaemon(true);
+        start();
+    }
+    public void run() {
+        while(true) {
+            d = d + (Math.PI + Math.E) / d;
+        }
+    }
+    public static void main(String[] args) throws Exception {
+        new ResponsiveUI();
+        System.in.read();
+        System.out.println(d);
+    }
+}
+```
+
+### Joining a Thread
+- If a thread calls `join()` on another thread, then the calling thread is suspended until the target thread finishes (isAlive() is false). You may also call `join()` with a timeout argument. If the target thread doesn't finish in that period of time, the call to `join()` returns anyway.
+- The call to `join()` may be aborted by calling `interrupt()` on the **calling thread**, so a try-catch clause is required:
+```
+class Sleeper extends Thread {
+    // ...
+    public void run() {
+        try {
+            sleep(1000);
+        } catch (InterruptedException e) {
+            System.out.println(isInterrupted());    // will print false
+            return;
+        }
+        System.out.println("awake");
+    }
+}
+class Joiner extends Thread {
+    private Sleeper sleeper;
+    // ...
+    public void run() {
+        try {
+            sleeper.join();
+        } catch (InterruptedException e) {
+            System.out.println("join interrupted");
+        }
+        System.out.println("join complete");
+    }
+}
+public class Joining {
+    public static void main(String[] args) {
+        Sleeper sleepy = new Sleeper(),
+                grumpy = new Sleeper();
+        Joiner dopey = new Joiner(sleepy),
+               doc = new Joiner(grumpy);
+        grumpy.interrupt(); // grumpy prints "false", doc still prints "join complete"
+        // doc.interrupt() will prints "join interrupted"
+    }
+}
+```
+- When calling `interrupt()`, if the thread is blocked by `wait()`, `join()`, or `sleep()`,  then its interrupt status will be cleared and receive the `InterruptedException`. So the result of `isInterrupted()` in the catch clause will always be false. The interrupted status flag is used for other situations where a thread may examine its interrupted state apart from the exception.
+- If the target thread either is interrupted or ends normally, the calling thread completes in conjunction with the target.
+- Note that the Java SE5 `java.util.concurrent` libraries contain tools such as `CyclicBarrier` that may be more appropriate than `join()`.
+
+### Thread Groups
+- Thread groups are best viewed as an unsuccessful experiment, and you may simply ingore their existence.
+
+### Catching Exceptions
+```
+public class ExceptionThread implements Runnable {
+    public void run() {
+        throw new RuntimeException();
+    }
+    public static void main(Stringp[] args) {
+        try {   // try-catch doesn't work, the exception will go out to the console
+            ExecutorService exec = Executors.newCachedThreadPool();
+            exec.execute(new ExceptionThread());
+        } catch (RuntimeException ue) {
+            // ...
+        }
+    }
+}
+```
+- Before Java SE5, you used thread groups to catch exceptions from `run()`, but Java SE5 can solve the problem with `Executor`s.
+```
+class MyUncaughtExceptionHandler implements Thread.UncaughtExceptionHandler {
+    public void uncaughtException(Thread t, Throwable e) {
+        System.out.println("caught " + e);
+    }
+}
+class HandlerThreadFactory implements ThreadFactory {
+    public Thread newThread(Runnable r) {
+        Thread  t = new Thread(r);
+        t.setUncaughtExceptionHandler(new MyUncaughtExceptionHandler());
+        return t;
+    }
+}
+public class CaptureUncaughtException {
+    public static void main(String[] args) {
+        ExecutorService exec = Executors.newCachedThreadPool(new HandlerThreadFactory());
+        exec.execute(new ExceptionThread());
+    }
+}
+```
+- If you know that you're going to use the same exception handler everywhere, an even simpler approach is to set the default uncaught exception handler. The system checks for a specific version for that thread, and if it doesn't find one it checks to see if the thread group specializes its `uncaughtException()` method; if not, it calls the `defaultUncaughtExceptionHandler`:
+```
+public static void main(String[] args) {
+    Thread.setDefaultUncaughtExceptionHandler(new MuUncaughtExceptionHandler());
+    ExecutorService exec = Executors.newCachedThreadPool();
+    exec.execute(new ExceptionThread());
+}
+```
+
+## Sharing Resources
+- 
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.
@@ -1910,7 +2110,7 @@ switch(color){
 - If you are calling `return` from `case` statements, the compiler will complain if you do not have a `default` -- even if you have covered all the possible values.
 
 ### Extension
-- Since Java does not support ultiple inheritance, you cannot create an enum via inheritance.
+- Since Java does not support multiple inheritance, you cannot create an enum via inheritance.
 - It is possible to create an enum that implements one or more interfaces.
 
 ## The Mystery of **values()**

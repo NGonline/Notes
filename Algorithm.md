@@ -6586,3 +6586,77 @@ public:
         return dummy.next;
     }
 };
+
+## Bit Count
+- Precompute_16bit:
+```
+// static char bits_in_16bits [0x1u << 16] ;      
+int bitcount (unsigned int n) {
+   // works only for 32-bit ints
+   return bits_in_16bits [n & 0xffffu]
+        + bits_in_16bits [(n >> 16) & 0xffffu] ;
+}
+```
+- Parallel Count
+```
+#define TWO(c)     (0x1u << (c))
+#define MASK(c)    (((unsigned int)(-1)) / (TWO(TWO(c)) + 1u))
+#define COUNT(x,c) ((x) & MASK(c)) + (((x) >> (TWO(c))) & MASK(c))
+
+int bitcount (unsigned int n) {
+    n = COUNT(n, 0) ;
+    n = COUNT(n, 1) ;
+    n = COUNT(n, 2) ;
+    n = COUNT(n, 3) ;
+    n = COUNT(n, 4) ;
+    /* n = COUNT(n, 5) ;    for 64-bit integers */
+    return n ;
+}
+```
+- Nifty Parallel Count
+```
+#define MASK_01010101 (((unsigned int)(-1))/3)
+#define MASK_00110011 (((unsigned int)(-1))/5)
+#define MASK_00001111 (((unsigned int)(-1))/17)
+
+int bitcount (unsigned int n) {
+    n = (n & MASK_01010101) + ((n >> 1) & MASK_01010101) ;  // 00->00, 01->01, 10->01, 11->10 
+    n = (n & MASK_00110011) + ((n >> 2) & MASK_00110011) ; 
+    n = (n & MASK_00001111) + ((n >> 4) & MASK_00001111) ; 
+    return n % 255 ;
+}
+```
+- MIT HAKMEM (n^k mod (n-1) = 1)
+```
+int bitcount(unsigned int n) {
+    /* works for 32-bit numbers only    */
+    /* fix last line for 64-bit numbers */
+    register unsigned int tmp;
+    // 011111111111 is 01 001001 001001 ...
+    // 033333333333 is 11 011011 011011 ...
+    // 030707070707 is 11 000111 000111 ...
+    tmp = n - ((n >> 1) & 033333333333)
+            - ((n >> 2) & 011111111111);
+    return ((tmp + (tmp >> 3)) & 030707070707) % 63;
+}
+```
+- JDK
+```
+/**
+ * Returns the number of one-bits in the two's complement binary
+ * representation of the specified <tt>int</tt> value.  This function is
+ * sometimes referred to as the <i>population count</i>.
+ *
+ * @return the number of one-bits in the two's complement binary
+ *     representation of the specified <tt>int</tt> value.
+ * @since 1.5
+ */
+public static int bitCount(int i) {
+    i = i - ((i >>> 1) & 0x55555555);   // 00->00, 01->01, 10->01, 11->10 
+    i = (i & 0x33333333) + ((i >>> 2) & 0x33333333);
+    i = (i + (i >>> 4)) & 0x0f0f0f0f;
+    i = i + (i >>> 8);
+    i = i + (i >>> 16);
+    return i & 0x3f;
+}
+```

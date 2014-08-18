@@ -1543,7 +1543,95 @@ public static void main(String[] args) {
 ```
 
 ## Sharing Resources
-- 
+- Race condition: two or more tasks race to respond to a condition and thus collide or otherwise produce inconsistent results.
+- Note that the increment operation (++, +=) itself is not atomic operation in Java. So even a single increment isn't safe to do without protecting the task.
+- If you want to see multithreaded programs with bugs fail much faster, try putting a call to `yield()` between codes in the critical section.
+- To solve the problem of thread collsion, virtually all concurrency schemes serialize access to shared resources.
+
+### Synchronized
+- To control access to a shared resource, you first put it inside an object. Then any method that uses the resource can be made `synchronized`.
+- All objects automatically contain a single lock (monitor). When you call any `synchronized` method, that object is locked and no other `synchronized` method of that object can be called until the first one finishes.
+- It's especially important to make fields `private` when working with concurrency; otherwise the `synchronized` keyword cannot prevent another task from accessing a field directly.
+- If one `synchronized` method calls a second on the same object, the JVM keeps track of the number of times the object has been locked. When the count goes to zero, the lock will be released entirely for use by other tasks.
+- `synchronized static` methods can lock static data on a class-wide basis.
+- Brian's Rule of Synchronization: if you are writing a variable taht might next be read by another thread, or reading avariable that might have last been written by another thread, you must use synchronization, and further, both the reader and the writer must synchronize using the same monitor lock.
+- If you have more than one method in your class that deals with the critical data, you must synchronize all relevant methods or it won't work right.
+
+### Explicit Lock Objects
+- Java SE5 `java.util.concurrent.locks` contains explicit mutex mechanism. It must be explicityly created, locked, and unlocked. However, it is more flexible for solving certain types of problems:
+```
+private Lock lock = new ReentrantLock();
+public int foo() {
+    lock.lock();
+    try {
+        // ...
+        return 0;
+    } finally {
+        lock.unlock();
+    }
+}
+// try and fail rather than waiting until lock is free
+public void untimed() {
+    boolean captured = lock.tryLock();
+    try {
+        // ...
+    } finally {
+        if(captured)
+            lock.unlock();
+    }
+}
+// try to acquire a lock for a certain amount of time and then give up
+boolean captured = false;
+try {
+    captured = lock.tryLock(2, TimeUnit.SECONDS);
+} catch(InterruptedException e) {
+    throw new RuntimeException(e);
+}
+try {
+    // ...
+} finally {
+    if(captured)
+        lock.unlock();
+}
+```
+- Right after the call to `lock()`, you must place a try-finally with `unlock()` in the `finally` clause. Note that the `return` statement must occur inside the `try` clause to ensure that the `unlock()` doesn't happen too early and expose the data.
+- If a `ReentrantLock` fails to get a lock, it won't try again.
+- If something fails using the `synchronized` keyword, an exception is thrown but you don't get the chance to do any cleanup inorther to maintain your system in a good state. With explicit `Lock` objects, you can maintain proper state in your system using the `finally` clause.
+- The explicit `Lock` object also gives you finer-grained control over locking and unlocking than the built-in `synchronized` lock. This is useful for implementing specialized synchronization structures, such as hand-over-hand locking (lock coupling). When traversing the nodes of a linked list, the traversal code must capture the lock of the next node before it releases the current node't lock (to keep the next reference).
+
+### Atomicity and Volatility
+- A common incorrect piece of lore is, "Atomic operatioins do not nedd to be synchronized".
+- Relying on atomicity is tricky and dangerous --- you should only try to use atomicity instead of synchronization if you are a concurrency expert. The Goetz Test: if you can write a high-performance JVM for a modern microprocessor, then you are qualified to think about whtether you can avoid synchronizing.
+- Knowing about atomicity is useful lfor implementing some of the more clever concurrent library components. But strongly resist the urge to rely on it yourself.
+- Sometimes, even when it seems like an atomic operation should be safe, it may not be.
+- Automicity applies to "simple operations" on primitive types except for `long` and `double`. Reading and writing primitives other than them is guaranteed to go to and from memory as indivisible. You do get atomicity (for simple assignments and returns) if you use the `volatile` keyword when defining a `long` or `double` variable. `volatile` was not working properly before Java SE5, and different JVMs are free to provide stronger guarantees, but you should not rely on platform-specific features.
+- On multiprocessor systems, visibility rather than atomicity is much more of an issue. Different tasks will have a different view of the application's state (local cache for example). The synchronization mechanism forces changes by one task on a multiprocessor system to be visible across the application.
+- The `volatile` keyword also ensures visibility across the application. As soon as a write occurs for that field, all reads will see the change, even if local caches are involved.
+- Note that atomicity and volatility are distinct concepts. An atomic operation on a non-volatile field will not necessariliy be flushed to main memory.
+- Synchronization also causes flushing to main memory, so if a field is **completely** guarde by `synchronized` methods or blocks, it is not neccessary to make it `volatile`.
+- `volatile` doesn't work when the value of a field depends on its previous value, nor does it work on fields whose values are constrained by the values of other fields.
+- If the class has only one mutable field (note that primitives are mutable), it is possibly safe to use `volatile` instead of `synchronized`, but not always:
+```
+private static volatile int serialNumber = 0;
+public static int nextSerialNumber() {
+    return serialNumber++;  // may return in unstable intermediate state
+}
+```
+- Remember Brian's Rule of Synchronization and synchroniza all relevant methods:
+```
+private int i = 0;
+public int getValue() { return i; } // not synchronized, may get odd number
+private synchronized void evenIncrement() { i++; i++; }
+public void run() {
+    while(true)
+        evenIncrement();
+}
+```
+- `volatile`:
+1. tells the compiler not to dy any optimizations that would remove reads and writes to the main memory;
+2. restricts compiler reordering of accesses during optimization (code and memory reordering only assures single-thread invariance).
+- You should make a field `volatile` if that field could be simultaneously accessed by multiple tasks, and at least one of those accesses is a write.
+- Constructors cannot be `synchronized` since only the thread that creates an object needs to have access to it while it is being constructed.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

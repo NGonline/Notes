@@ -1631,7 +1631,26 @@ public void run() {
 1. tells the compiler not to dy any optimizations that would remove reads and writes to the main memory;
 2. restricts compiler reordering of accesses during optimization (code and memory reordering only assures single-thread invariance).
 - You should make a field `volatile` if that field could be simultaneously accessed by multiple tasks, and at least one of those accesses is a write.
-- Constructors cannot be `synchronized` since only the thread that creates an object needs to have access to it while it is being constructed.
+- Constructors cannot be `synchronized` since only the thread that creates an object needs to have access to it while it is being constructed. If you need another thread inside the constructor, try to use synchronized block:
+```
+public class Test {
+    public Test() {
+        final Test me = this;
+        synchronized(this) {
+            new Thread() {
+                @Override
+                public void run() {
+                    // ... Reference 'me,' the object being constructed
+                    snchronized(me) {
+                        // do something dangerous with 'me'.
+                    }
+                }
+            }.start();
+            // do something dangerous with this
+        }
+    }
+}
+```
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

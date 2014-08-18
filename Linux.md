@@ -193,6 +193,11 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `echo 'xxx' > f` replace instead of pending
 - `echo -e` enables backslash escape. The default setting disables this. `echo "a\tb"` will actually print `a\tb`
 
+## export
+- export names to the environment of subsequently executed commands. The child process will inherit the names, but changes of them in the child processes will not affect the father process.
+- `=` without `export` will only affects the current process.
+- `export` or `export -p` prints a list of all names that are exported in this shell.
+
 ## find
 - `find /path/ -name xxx`
 - `-iname` ignore upper or lower cases

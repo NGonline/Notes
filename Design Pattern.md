@@ -260,3 +260,6 @@ class DynamicProxyHandler implements InvocationHandler{
 ### Decorator
 - Decorators are often used when, in order to satisfy every possible combination, simple subclassing produces so many classes that it becomes impractical.
 - A decorating class can also add methods, but as you shall see, this is limited.
+
+### Template Method
+- Functionality implemented in the base class uses one or more `abstract` methods defined in derived classes.

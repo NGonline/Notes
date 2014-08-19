@@ -1556,6 +1556,7 @@ public static void main(String[] args) {
 - `synchronized static` methods can lock static data on a class-wide basis.
 - Brian's Rule of Synchronization: if you are writing a variable taht might next be read by another thread, or reading avariable that might have last been written by another thread, you must use synchronization, and further, both the reader and the writer must synchronize using the same monitor lock.
 - If you have more than one method in your class that deals with the critical data, you must synchronize all relevant methods or it won't work right.
+- Note that `synchronized` keyword is not part of the method signature and thus may be added during overriding.
 
 ### Explicit Lock Objects
 - Java SE5 `java.util.concurrent.locks` contains explicit mutex mechanism. It must be explicityly created, locked, and unlocked. However, it is more flexible for solving certain types of problems:
@@ -1648,6 +1649,88 @@ public class Test {
             }.start();
             // do something dangerous with this
         }
+    }
+}
+```
+- Java SE5 introduces special atomic variable classes such as `AtomicInteger`, `AtomicReference`, etc, that provide atomic conditional update operations.
+```
+public class AtomicIntegerTest implements Runnable {
+    private AtomicInteger i = new AtomicInteger(0);
+    pubilc int getValue() { return i.get(); }
+    private void evenIncrement() { i.addAndGet(2); }
+    public void run() {
+        while(true)
+            evenIncrement();
+    }
+}
+```
+- Occationally they come in handy for regular coding, but again when performance tuing is involved. You should use them in your own code only under special circumstances. It's generally safer to rely on locks.
+
+### Critical Sections
+- Before synchronized block can be entered, the lock must be acquired on the specified object. If some other task already has this lock, then the critical section cannot be entered until the lock is released.
+```
+abstract class PairManager {
+    AtomicInteger checkCounter = new AtomicInteger(0);
+    protected Pair p = new Pair();  // normal unprotected single-threaded class
+    private List<Pair> storage = Collections.synchronizedList(new ArrayList<Pair>());
+    public synchronized Pair getPair() {
+        // make a copy to keep the original safe
+        return new Pair(p.getX(), p.getY());
+    }
+    protected void store(Pair p) {  // no need to be synchronized
+        storage.add(p);
+    }
+    public abstract void increment();
+}
+class PairManager1 extends PairManager {
+    public synchronized void increment() {
+        p.incrementX();
+        p.incrementY();
+        store(getPair());
+    }
+}
+class PairManager2 extends PairManager {
+    public void increment() {
+        Pair temp;
+        synchronized(this) {
+            p.incrementX();
+            p.incrementY();
+            temp = getPair();
+        }
+        store(temp);    // put outside the critical section to speed up
+    }
+}
+```
+- The time available for other tasks to access an object is significantly increased (block time is decreased) by using a `synchronized` block instead of synchronizing an entire method.
+- If you need to use a non-thread-safe class in a threaded environment, you can do this by creating the threaded class, which holds that object and controls all access to it.
+- You can also use explicit `Lock` objects to create critical sections:
+```
+class PairManager1 extends PairManager {
+    private Lock lock = new ReentrantLock();
+    public synchronized void increment() {
+        lock.lock();
+        try {
+            p.incrementX();
+            p.incrementY();
+            store(getPair());
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+class PairManager2 extends PairManager {
+    private Lock lock = new ReentrantLock();
+    public void increment() {
+        Pair temp;
+        lock.lock();
+        try {
+            p.incrementX();
+            p.incrementY();
+            temp = getPair();
+        } finally {
+            lock.unlock();
+        }
+        store(temp);    // put outside the critical section to speed up
     }
 }
 ```

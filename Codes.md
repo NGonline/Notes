@@ -88,3 +88,24 @@ This map usually acts as a binned (bucketed) hash table, but when bins get too l
 ```
 
 ```
+
+## Arrays
+```
+private static int binarySearch0(long[] a, int fromIndex, int toIndex, long key) {
+    int low = fromIndex;
+    int high = toIndex - 1;
+
+    while (low <= high) {
+        int mid = (low + high) >>> 1;   // 逻辑右移解决了溢出
+        long midVal = a[mid];
+
+        if (midVal < key)
+            low = mid + 1;
+        else if (midVal > key)
+            high = mid - 1;
+        else
+            return mid; // key found
+    }
+    return -(low + 1);  // key not found. 总能得到后一个结果
+}
+```

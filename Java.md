@@ -5236,6 +5236,7 @@ try{
 	Class<?> c = Class.forName("XXX");
 	Method[] methods = c.getMethods();	// show public methods
 	Constructor[] ctors = c.getConstructors();	// show public constructors
+    Constrctor<?> ctor = c.getConstructor(xxx.class, xxx.class);    // get specific constructor
 } catch(ClassNotFoundException e){
 	// ...
 }

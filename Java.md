@@ -1734,6 +1734,70 @@ class PairManager2 extends PairManager {
     }
 }
 ```
+- The effect of the critical section, when synchronizing on `this`, is simply to reduce the scope of synchronization.
+- Sometimes you must synchronize on another object, but if you do this you must ensure that all relevant tasks are synchronizing on the same object.
+```
+// two synchronizations are independent
+class DualSynch {
+    private Object syncObject = new Object();
+    public synchronized void f() {
+        // ...
+    }
+    public void g() {
+        synchronized(syncObject) {
+            // ...
+        }
+    }
+}
+public class SyncObject {
+    public static void main(String[] args) {
+        final DualSynch ds = new DualSynch();
+        new Thread() {
+            public void run() {
+                ds.f();
+            }
+        }.start();
+        ds.g();
+    }
+}
+```
+- Thread local storage is a mechanism that automatically creates different storage for the same variable:
+```
+class Accessor implements Runnable {
+    private final int id;
+    public Accessor(int idn) { id = idn; }
+    public void run() {
+        while(!Thread.currentThread().isInterrupted()) {
+            ThreadLocalVariableHolder.increment();
+            System.out.println(this);
+            Thread.yield();
+        }
+    }
+    public String toString() {
+        // ...
+    }
+}
+public class ThreadLocalVariableHolder {
+    private static ThreadLocal<Integer> value = new ThreadLocal<Integer>() {
+            private Random rand = new Random(47);
+            protected synchronized Integer initialValue() {
+                return rand.nextInt(10000);
+            }
+        };
+    public static void increment() {
+        value.set(value.get() + 1);
+    }
+    public static int get() { return value.get(); }
+    public static void main(String[] args) throws Exception {
+        ExecutorService exec = Executors.newCachedThreadPool();
+        for(int i=0; i<5; i++)
+            exec.execute(new Accessor(i));
+        TimeUnit.SECONDS.sleep(3);
+        exec.shutdownNow();
+    }
+}
+```
+- You are only able to access the contents of the object using the `get()` and `set()` methods. Notice that `increment()` and `get()` are not `synchronized`, because `ThreadLocal` guarantees that no race condition can occur.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

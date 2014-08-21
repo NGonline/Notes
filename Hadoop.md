@@ -55,3 +55,12 @@ hadoop jar hadoop-*-streaming.jar \
 - ls命令返回的第二列是这个文件的备份数，目录作为元数据保存在namenode中，所以没有备份数。
 - Hadoop有一个抽象的文件系统概念，HDFS只是其中的一个实现。Java抽象类org.apache.hadoop.hs.FileSystem定义了Hadoop中的一个文件系统接口，并且该抽象类有几个具体实现。
 - 尽管运行的MapReduce程序可以访问任何文件系统，但在处理大数据集时，你仍然需要选择一个具有数据本地优化的分布式文件系统，如HDFS或KFS。
+- Hadoop为执行通配提供了两个FileSystem方法：
+```
+public FileStatus[] globStatus(Path pathPattern) throws IOException
+public FileStatus[] globStatus(Path pathPattern, PathFilter filter) throws IOException
+```
+支持的通配符与bash相同：`*` `?` `[ab]` `[^ab]` `[a-b]` `[^a-b]` `{a,b}`(a或b中的一个表达式) `\c`(转义字符)
+- FileStatus[]可以通过FileUtil.stat2Paths(status)转化为Path[]
+- `hadoop ListStatus`可以展示一组路径集目录列表的并集
+- 

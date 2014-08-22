@@ -2060,6 +2060,7 @@ class SetType{
 - The `get()` method of `Set` takes `Object` rather than generic type parameter because, in some cases, `equals()` can allow objects from diffenrent inheritance hierarchy to be equal.
 - Iteration is usually faster with a `TreeSet` than a `HashSet`.
 - `LinkedHashSet` is more expensive for insertions than `HashSet`.
+- `equals()` of sets returns true if the given object is also a set, the two sets have the same size, and every member of the given set is contained in this set.
 
 ### TreeSet
 - `TreeSet` keeps elements sorted into a red-black tree data structure, whereas `HashSet` uses the hashing function. 

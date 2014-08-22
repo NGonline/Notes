@@ -174,6 +174,9 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 ## curl
 - To transfer data from or to a server, using one of the supported protocols (HTTP, HTTPS, FTP, FTPS, SCP, SFTP, TFTP, DICT, TELNET, LDAP or FILE).
 
+## cut
+- Print selected parts of lines: `cut -d' ' -f2-` deletes the first colume
+
 ## date
 - `date -d "2012-04-10 -1 day" +%Y-%m-%d` returns 2012-04-09
 

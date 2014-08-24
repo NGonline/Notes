@@ -1761,7 +1761,7 @@ public class SyncObject {
     }
 }
 ```
-- Thread local storage is a mechanism that automatically creates different storage for the same variable:
+- Thread local storage is a mechanism that automatically creates different storage for the same variable. It uses a `synchronizedMap` to store each variable for every thread:
 ```
 class Accessor implements Runnable {
     private final int id;
@@ -1798,6 +1798,9 @@ public class ThreadLocalVariableHolder {
 }
 ```
 - You are only able to access the contents of the object using the `get()` and `set()` methods. Notice that `increment()` and `get()` are not `synchronized`, because `ThreadLocal` guarantees that no race condition can occur.
+
+## Terminating Tasks
+- `ExecutorService.awaitTermination()` waits for each task to complete, and if they all complete before the timeout value, it returns `true`, otherwise it returns `false` to indicate that not all tasks have completed.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

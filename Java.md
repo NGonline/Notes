@@ -1801,6 +1801,138 @@ public class ThreadLocalVariableHolder {
 
 ## Terminating Tasks
 - `ExecutorService.awaitTermination()` waits for each task to complete, and if they all complete before the timeout value, it returns `true`, otherwise it returns `false` to indicate that not all tasks have completed.
+- Thread states:
+1. New: only momentarily as it is being created. It allocates any necessary system resources and performs initialization. The scheduler will then transition this thread to the runnable or blocked state.
+2. Runnable: there's nothing to prevent it from being run if the scheduler can arrange it. That is, it's not dead or blocked.
+3. Blocked: the scheduler will simply skip it.
+4. Dead: its task is completed, and it is no longer runnable. Returning and interrupting can make a task dead.
+- A task can become blocked for the following reasons:
+ - call `sleep()`
+ - suspended with `wait()`. It will not become runnable again until gets the `notify()` or `notifyAll()` message (or the equivalent `signal()` or `signalAll()` for the Java SE5 java.util.concurrent library tools)
+ - wait for some I/O to complete
+ - try to call a `synchronized` method on another object and that lock is not available
+- `suspend()` and `resume()` are deprecated in modern Java since they are deadlock-prone. `stop()` is deprecated because it doesn't release the locks that the thread has acquired, and if the objects are in an inconsistent state, other tasks can view and modify them in that state.
+
+### Interruption
+- When you break out of a blocked task, you might need to clean up resources. So breaking out of the middle of a task's `run()` is more like throwing an exception. So in Java threads, exceptions are used ro this kind of abort. Exceptions are never delivered asynchronously. Thus there is no danger of something aborting mid-instruction/method call. As long as you use the `try-finally` idiom when using object mutexes (rather than `synchronized`), those mutexes will be automatically released if an exception is thrown.
+- `Thread.interrupted()` sets the interrupted status for the thread, which wil throw an `InterruptedException` if it is already blocked or if it attempts a blocking operation. The interrupted status will be reset when the exception is thrown or if the task calls `Thread.interrupted()`. `Thread.interrupted()` provides a second way to leave your `run()` loop, without throwing an exception.
+- To call `interrupt()`, you must hold a `Thread` object. If you call `shutdownNow()` on an `Executor`, it will send an `interrupt()` call to each of the threads it has started. You can hold on to the context of a task when you start it by calling `submit()` instead of `execute()`. The point of holding this kind of `Future` is that you can call `cancel()` on it and thus use it to interrupt a particular task.
+```
+class SleepBlocked implements Runnable {
+    public void run() {
+        try {
+            TimeUnit.SECONDS.sleep(100);
+        } catch(InterruptedException e) {
+            System.out.println("InterruptedException");
+        }
+        System.out.println("Exiting SleepBlocked.run()");
+    }
+}
+class IOBlocked implements Runnable {
+    private InputStream in;
+    public IOBlocked(InputStream is) { in = is; }
+    public void run() {
+        try {
+            in.read();
+        } catch (IOException e) {   // never go through
+            if(Thread.currentThread().isInterrupted()) {
+                System.out.println("Interrupted from blocked I/O");
+            } else {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+}
+class SynchronizedBlocked implements Runnable {
+    public synchronized void f() {
+        while(true) { Thread.yield(); }
+    }
+    public SynchronizedBlocked() {
+        new Thread() {
+            public void run() {
+                f();    // blocked by outter class' run()
+            }
+        }.start()
+    }
+    public void run() {
+        f();
+        System.out.println("Exiting SynchronizedBlocked.run()");    // never printed
+    }
+}
+public class Interrupting {
+    private static ExecutorService exec = Executors.newCachedThreadPool();
+    static void test(Runnable r) throws InterruptedException {
+        Future<?> f = exec.submit(r);
+        TimeUnit.MILLISECONDS.sleep(100);
+        f.cancel(true); // interrupts if running
+    }
+    public static void main(String[] args) throws Exception {
+        test(new SleepBLocked());
+        test(new IOBlocked(System.in));
+        test(new SynchronizedBlocked());
+        TimeUnit.SECONDS.sleep(3);
+        System.exit(0); // 2 interrupts failed
+    }
+}
+```
+`SleepBlock` is an example of interruptible blocking, whereas `IOBlocked` and `SynchronizedBlocked` are uninterruptible blocking. (Some platforms implement `InterruptedIOException`).
+
+- I/O has the potential of locking your multithreaded program. Especially form Web-based programs, this is a concern. A heavy-handed but sometimes effective solution to this problem is to close:
+```
+import java.net.*
+public class CloseResource {
+    public static void main(String[] args) throws Exception {
+        ExecutorService exec = Executors.newCachedThreadPool();
+        ServerSocket server = new ServerSocket(8080);
+        InputStream socketInput = new Socket("localhost", 8080).getInputStream();
+        exec.execute(new IOBlocked(socketInput));
+        exec.execute(new IOBlocked(System.in));
+        TimeUnit.MILLISECONDS.sleep(100);
+        exec.shutdownNow(); // interrupt all runnable thread
+        TimeUnit.SECONDS.sleep(1);
+        socketInput.close();    // release blocked thread, interrupt() occurs
+        TimeUnit.SECONDS.sleep(1);
+        System.in.close();  // release blocked thread, interrupt() not occurs, but still closed
+    }
+}
+```
+- It's interesting to note that the `interrupt()` appears when you are closing the `Socket` but not when closing `System.in`. Fortunately, the nio classes provide for more civilized interruption of I/O:
+```
+class NIOBlocked implements Runnable {
+    private final SocketChannel sc;
+    public NIOBlocked(SocketChannel sc) { this.sc = sc; }
+    public void run() {
+        try {
+            sc.read(ByteBuffer.allocate(1));
+        } catch (ClosedByInterruptException e) {
+            // ...
+        } catch (AsynchronousCloseException e) {
+            // ...
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}
+public class NIOInterruption {
+    public static void main(String[] args) throws Exception {
+        ExecutorService exec = Executors.newCachedThreadPool();
+        ServerSocket server = new ServerSocket(8080);
+        InetSocketAddress isa = new InetSocketAddress("localhost", 8080);
+        SocketChannel sc1 = SocketChannel.open(isa);
+        Future<?> f = exec.submit(new NIOBlocked(sc1));
+        SocketChannel sc2 = SocketChannel.open(isa);
+        exec.execute(new NIOBlocked(sc2));
+        exec.shutdown();    // disable new threads
+        TimeUnit.SECONDS.sleep(1);
+        f.cancel(true); // interrupt sc1, ClosedByInterruptException
+        TimeUnit.SECONDS.sleep(1);
+        sc2.close();    // release the block, AsynchronousCloseException
+    }
+}
+```
+Using `execute()` to start both tasks and calling `shutdownNow()` will easily terminate everything; capturing the `Future` in the example above was only necessary to send the interrupt to one thread an not the other.
+
+- You can still close the underlying channel to release the block, although this should rarely be necessary.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

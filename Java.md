@@ -1899,7 +1899,7 @@ public class CloseResource {
 - It's interesting to note that the `interrupt()` appears when you are closing the `Socket` but not when closing `System.in`. Fortunately, the nio classes provide for more civilized interruption of I/O:
 ```
 class NIOBlocked implements Runnable {
-    private final SocketChannel sc;
+    private final SocketChannel sc; // nio channel
     public NIOBlocked(SocketChannel sc) { this.sc = sc; }
     public void run() {
         try {
@@ -1933,6 +1933,147 @@ public class NIOInterruption {
 Using `execute()` to start both tasks and calling `shutdownNow()` will easily terminate everything; capturing the `Future` in the example above was only necessary to send the interrupt to one thread an not the other.
 
 - You can still close the underlying channel to release the block, although this should rarely be necessary.
+- The same mutex can be multiply acquired by the same task. It makes sense because one task should be able to call other `synchronized` methods within the same object; that task already holds the lock:
+```
+public class MultiLock {
+    public synchronized void f1(int count) {
+        if (count-- > 0) {
+            f2(count);
+        }
+    }
+    public synchronized void f2(int count) {
+        if (count-- > 0) {
+            f1(count);
+        }
+    }
+}
+```
+- Anytime that a task can be blocked in sych a way that it cannot be interrupted, you have the potential to lock up a program. Java SE5 concurrency library adds the ability for tasks blocked on `ReentrantLock`s to be interrupted, unlike tasks blocked on `synchronized` methods or critical sections:
+```
+class BlockedMutex {
+    private Lock lock = new ReentrantLock();
+    public BlockedMutex() {
+        lock.lock();    // cannot be interrupted during blocking
+    }
+    public void f() {
+        try {
+            lock.lockInterruptibly();   // lock the method and can be interrupted during blocking
+            System.out.println("lock acquired in f()");
+        } catch (InterruptedException e) {
+            // throwing exception will automatically release the object mutex
+            /* 3 */
+        }
+    }
+}
+class Blocked implements Runnalbe {
+    BlockedMutex blocked = new BlockedMutex();
+    public void run() {
+        /* 1 */
+        blocked.f();    // could happen after t.interrupt(), it will still be interrupted
+        /* 4 */
+    }
+}
+public class Interrupting {
+    public static void main(String[] args) throws Exception {
+        Thread t = new Thread(new Blocked());
+        t.start();
+        TimeUnit.SECONDS.sleep(1);
+        /* 2 */
+        t.interrupt();
+    }
+}
+```
+- Unlike an I/O call, `interrupt()` can break out of a call that's blocked by a mutex.
+- When you call `interrupt()` on a thread, the only time that the interrupt occurs is when the task enters, or is already inside, a blocking operation (except uninterruptible I/O or blocked `synchronized` methods, in which case there's nothing you can do).
+- Clearing the interrupted status ensures that the framework will not notify you twice about a task being interrupted. You will be notified via either a single `InterruptedException` or a single successful `Thread.interrupted()` test.
+- The typical idiom that you should use to handle both blocked and non-blocked possibilities:
+```
+class Blocked implements Runnable {
+    private volatile double d = 0.0;
+    try {
+        while (!Thread.interrupted()) {
+            NeedCleanup n1 = new NeedCleanup();
+            try {   // right after creation
+                TimeUnit.SECONDS.sleep(1);  // blocking
+                NeedCleanup n2 = new NeedCleanup();
+                try {   // right after creation
+                    for (int i=1; i<2500000; i++)   // non-blocking
+                        d = d + (Math.PI + Math.E) / d;
+                } finally {
+                    n2.cleanup();
+                }
+            } finally {
+                n1.cleanup();
+            }
+        }
+    } catch (InterruptedException e) {
+        // exit via InterruptedException if interrupt() called before creation of n2
+    }
+}
+```
+- The creation of all objects that require cleanup must be followed by `try-finally` clauses so that cleanup will occur regardless of how the `run()` loop exists.
+
+## Cooperation between Tasks
+- On top of mutex, we add a way for a task to suspend itself until some external state changes, which is safely implemented using the `Object` methods `wait()` and `notifyAll()`. The Java SE5 concurrency library also provides `Condition` objects with `await()` and `signal()` methods.
+- `wait()` allows you to wait for a change in some condition that is outside the control the current method. Busy waiting is a bad use of CPU cycles. So `wait()` suspends the task until a `notify()` of `notifyAll()` occurs to wake the task up and check for changes.
+- `sleep()` does not release the object lock when it is called, and neither does `yield()`. When a task enters a call to `wait()` inside a method, the lock on that object is released, so other  `synchronized` methods in the object can be called during a `wait()`.
+- There are two forms of `wait()`. One version taks an argument in milliseconds and the other takes no arguments.
+- `wait()`, `notify()`, and `notifyAll()` are part of the base class `Object` rather than `Thread`. It's essential because these methods manipulate the lock that's also part of every object. As a result, you can put a `wait()` inside any `synchronized` method. In fact, the only place you can call them is within a `synchronized` method or block. If you call any of them in other place, the program will compile but throw an `IllegalMonitorStateException` with a nonintuitive message "current thread not owner".
+```
+class Car {
+    private boolean waxOn = false;
+    public synchronized void waxed() {
+        waxOn = true;
+        notifyAll();
+    }
+    public synchronized void buffed() {
+        waxOn = false;
+        notifyAll();
+    }
+    public synchronized void waitForWaxing() throws InterruptedException {
+        while (waxOn == false)
+            wait();
+    }
+    public synchronized void waitForBuffing() throws InterruptedException {
+        while (waxOn == true)
+            wait();
+    }
+}
+class EaxOn implements Runnable {
+    private Car car;
+    public WaxOn(Car c) { car = c; }
+    public void run() {
+        try {
+            while (!Thread.interrupted()) {
+                TimeUnit.MILLISECONDS.sleep(200);
+                car.waxed();
+                car.waitForBuffing();
+            }
+        } catch (InterruptedException e) {
+            // ...
+        }
+    }
+}
+class EaxOff implements Runnable {
+    private Car car;
+    public WaxOff(Car c) { car = c; }
+    public foid run() {
+        try {
+            while (!Thread.interrupted()) {
+                car.waitForWaxing();
+                TimeUnit.MILLISECONDS.sleep(200);
+                car.buffed();
+            }
+        } catch (InterruptedException e) {
+            // ...
+        }
+    }
+}
+```
+- You must surround a `wait()` with a `while` loop that checks the condition of interest because:
+1. there may be multiple tasks waiting on the same lock for the same reason, the first task that wakes up might change the situation and it should be suspended again;
+2. it's possible that some other task will have changed thinds such that this taask is unable to perform or is uninterrested in performing;
+3. tasks could be waiting on your object's lock for different reasons (in which case you must use `notifyAll()`), you need to check.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

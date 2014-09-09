@@ -147,6 +147,9 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `command >> file` append the file
 - `command < file` read the parameter from file
 
+## at
+- executes commands at a specified time. `at now+2 hours`, `at 17:30 2/24/99`
+
 ## cat
 - `cat` simply copy standard input to standard output
 - `cat f - g` output f's contents, then standard input, then g's contents

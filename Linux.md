@@ -208,6 +208,9 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `find /path/ -name xxx`
 - `-iname` ignore upper or lower cases
 
+## iconv
+- `iconv -f a -t b` change charset from a to b
+
 ## history
 - `history -w` writes all your command history to .bash_history file. Normally this is done at the end of your session, when you close it by typing exit or by pressing <CTRL>+D.
 - If you prepend a command with space it won't be saved in history.

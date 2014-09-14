@@ -219,6 +219,21 @@ b = a<<2;   // error (cannot convert int to byte)
 byte b = 3;
 b += 10000;
 ```
+- When calculation hex code, be careful with 2's complement:
+```
+public static String bytes2HexString(byte[] b) {
+    String ret = "";
+    for (int i = 0; i < b.length; i++) {
+        // without & 0xFF, byte will be promoted to int with the same signal
+        String hex = Integer.toHexString(b[i] & 0xFF);
+        if (hex.length() == 1) {
+        hex = '0' + hex;
+        }
+        ret += hex.toUpperCase();
+    }
+    return ret;
+}
+```
 
 ### sizeof
 - Java does not need a `sizeof()` operator, because all the data types are the same size on all machines.
@@ -1965,7 +1980,7 @@ class BlockedMutex {
         }
     }
 }
-class Blocked implements Runnalbe {
+class Blocked implements Runnable {
     BlockedMutex blocked = new BlockedMutex();
     public void run() {
         /* 1 */
@@ -2012,6 +2027,7 @@ class Blocked implements Runnable {
 }
 ```
 - The creation of all objects that require cleanup must be followed by `try-finally` clauses so that cleanup will occur regardless of how the `run()` loop exists.
+- If a thread is blocked by `sleep()`, `wait()`, or `join()`, `interrupt()` will cause an exception and make it exit. Otherwise, `interrupt()` will just set the status flag. So you should cover both possible paths of exit. If `interrupt()` sets the flag before the thread enters one of the three methods, they will still get interrupted and throw exceptions.
 
 ## Cooperation between Tasks
 - On top of mutex, we add a way for a task to suspend itself until some external state changes, which is safely implemented using the `Object` methods `wait()` and `notifyAll()`. The Java SE5 concurrency library also provides `Condition` objects with `await()` and `signal()` methods.
@@ -2074,6 +2090,162 @@ class EaxOff implements Runnable {
 1. there may be multiple tasks waiting on the same lock for the same reason, the first task that wakes up might change the situation and it should be suspended again;
 2. it's possible that some other task will have changed thinds such that this taask is unable to perform or is uninterrested in performing;
 3. tasks could be waiting on your object's lock for different reasons (in which case you must use `notifyAll()`), you need to check.
+
+- `notify()` may be missed:
+```
+// T1
+synchronized(sharedMonitor) {
+    // something that must be done before T2
+    sharedMonitor.notify();
+}
+// wrong T2
+while (someCondition) {
+    // notify may happen before wait(), producing dead lock
+    synchronized(sharedMonitor) {
+        sharedMonitor.wait();
+    }
+}
+// correct T2
+synchronized(sharedMonitor) {
+    while (someCondition)
+        sharedMonitor.wait();
+}
+```
+
+### notify() v.s. notifyAll()
+- It is safer to call `notifyAll()` rather than just `notify()`. Using `notify()` instead of `notifyAll()` is an optimization.
+- If any of these rules cannot be met, you must use `notifyAll()` rather than `notify()`:
+1. only one task of the possible many will be awoken with `notify()`, so you must be certain that the right task will wake up;
+2. all tasks must be waiting on the same condition, otherwise you don't know if the right one will wake up;
+3. these constraints must always be true for all possible subclasses.
+
+- Only the tasks that are waiting on a particular lock are awoken when `notifyAll()` is called for that lock:
+```
+class Blocker {
+    synchronized void waitingCall() {
+        try {
+            while (!Thread.interrupted())
+                wait();
+        } catch (InterruptedException e) {
+            // ...
+        }
+    }
+    synchronized void prod() { notify(); }
+    synchronized void prodAll() { notifyAll(); }    // notify all waitingCall() of the same object
+}
+class Task1 implements Runnable {
+    static Blocker blocker = new Blocker();
+    public void run() { blocker.waitingCall(); }
+}
+class Task2 implements Runnable {
+    static Blocker blocker = new Blocker();
+    public void run() { blocker.waitingCall(); }
+}
+public class NotifyVsNotifyAll {
+    public static void main(String[] args) throws Exception {
+        ExecutorService exec = Executors.newCachedThreadPool();
+        for (int i=0; i<5; i++)
+            exec.execute(new Task1());
+        exec.execute(new Task2());
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            boolean prod = true;
+            public void run() {
+                if (prod) {
+                    Task.blocker.prod();    // notify one of the five threads of Task1
+                    prod = false;
+                } else {
+                    Task.blocker.prodAll(); // notify all of the five threads of Task1
+                    prod = true;
+                }
+            }
+        }, 400, 400);   // run every 0.4 second
+        TimeUnit.SECONDS.sleep(5);
+        timer.cancel(); // even canceled, the first five tasks are still running and still blocked
+        TimeUnit.MILLISECONDS.sleep(500);
+        Task2.blocker.prodAll();    // only notify the thread of Task2
+        TimeUnit.MILLISECONDS.sleep(500);
+        exec.shutdownNow(); // interrupt all tasks
+    }
+}
+```
+- It's logical that they are only calling it for that lock  --- and thus only wake up tasks that are waiting on that particular lock.
+
+### Producers and Consumers
+- Both tasks must handshake with each other:
+```
+class Meal {
+    private final int orderNum;
+    public Meal(int orderNum) { this.orderNum = orderNum; }
+}
+class WaitPerson implements Runnable {
+    private Restaurant restaurant;
+    public WaitPerson(Restaurant r) { restaurant = r; }
+    public void run() {
+        try {
+            while(!Thread.interrupted()) {
+                // race to the second synchronized block in Chef
+                synchronized(this) {
+                    // same condition as in Chef
+                    while (restaurant.meal == null)
+                        wait(); // ... for the chef to produce a meal
+                }
+                synchronized(restaurant.chef) {
+                    restaurant.meal = null;
+                    restaurant.chef.notifyAll();
+                }
+            }
+        } catch (InterruptedException e) {
+            // ...
+        }
+    }
+}
+class Chef implements Runnable {
+    private Restaurant restaurant;
+    private int count = 0;
+    public Chef(Restaurant r) { restaurant = r; }
+    public void run() {
+        try {
+            while(!Thread.interrupted()) {
+                // race to the second synchronized block in WaitPerson
+                synchronized(this) {
+                    // same condition as in WaitPerson
+                    while (restaurant.meal != null)
+                        wait(); // ... for the meal to be taken
+                }
+                if (++count == 10) {
+                    System.out.println("out of food, closing");
+                    restaurant.exec.shutdownNow();  // send interrupt to all tasks
+                }
+                synchronized(restaurant.waitPerson) {
+                    restaurant.meal = new Meal(count);
+                    restaurant.waitPerson.notifyAll();
+                }
+                TimeUnit.MILLISECONDS.sleep(100);
+            }
+        } catch (InterruptedException e) {
+            // ...
+        }
+    }
+}
+public class Restaurant {
+    Meal meal;  // meal window
+    ExecutorService exec = Executors.newCachedThreadPool();
+    WaitPerson waitPerson = new WaitPerson(this);
+    Chef chef = new Chef(this);
+    public Restaurant() {
+        exec.execute(chef);
+        exec.execute(waitPerson);
+    }
+}
+```
+Since there are only one task waiting on the lock, it's theoretically possible to call `notify()` instread of `notifyAll()`. Note that after `shutdownNow()`, `Chef` won't shut down until the interruptible blocking operation `sleep()`.
+
+- In a concurrent application, some other task might swoop in and grab the thing you are waiting for while this task is waking up. The only safe approach is to always use the following idiom for each `wait()` in the producer-consumer tasks:
+```
+while (conditionIsNotMet)
+    wait();
+```
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

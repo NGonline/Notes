@@ -1,5 +1,10 @@
 [TOC]
 
+# Introduction
+- You might think that the intent of archetectural patterns would be something like "to design buildings." But Alexander makes it clear that the intent of architectural patterns is to serve and inspire people who will occupy buildings and towns.
+- It's very easy to fall into a habit of thinking that the particular algorithm or piece of code that you happen to partly or thoroughly understand is antually going to be the bottleneck in your system. But unless you've run actual tests, typically with a profiler, you can't really know what's going on. And even if you are right, that a piece of code is very inefficient, unless the piece of code you're thinking about happens to fall into that 10% part that cost 90% time, it isn't going to be important.
+- We should forget about small efficiencies, say about 97% of the time: Premature optimization is the root of all evil. (Donald Knuth)
+
 # Strategy
 Creating a method that behaves differently depending on the argument object that you pass it.
 ```
@@ -248,7 +253,7 @@ class DynamicProxyHandler implements InvocationHandler{
 	public DynamicProxyHandler(Object proxied){
 		this.proxied = proxied;
 	}
-	public Object invode(Object proxy, Method method, Object[] args) throws Throwable{
+	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable{
 		// you can filter for certain method calls
 		// if( some filter for method or args)
 			// ...

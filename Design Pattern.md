@@ -4,6 +4,9 @@
 - You might think that the intent of archetectural patterns would be something like "to design buildings." But Alexander makes it clear that the intent of architectural patterns is to serve and inspire people who will occupy buildings and towns.
 - It's very easy to fall into a habit of thinking that the particular algorithm or piece of code that you happen to partly or thoroughly understand is antually going to be the bottleneck in your system. But unless you've run actual tests, typically with a profiler, you can't really know what's going on. And even if you are right, that a piece of code is very inefficient, unless the piece of code you're thinking about happens to fall into that 10% part that cost 90% time, it isn't going to be important.
 - We should forget about small efficiencies, say about 97% of the time: Premature optimization is the root of all evil. (Donald Knuth)
+- The GoF patterns often have a "context object" that the client programmer interacts with.
+- The context object often acts as a little facade to hide the complexity of the rest of the pattern, and in addition it will often be the controller that manages the operation of the pattern.
+- The context object allows you to use the pattern in a composition (rather than inheritance), and that may be it's primary value.
 
 # Strategy
 Creating a method that behaves differently depending on the argument object that you pass it.

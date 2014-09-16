@@ -7,6 +7,7 @@
 - The GoF patterns often have a "context object" that the client programmer interacts with.
 - The context object often acts as a little facade to hide the complexity of the rest of the pattern, and in addition it will often be the controller that manages the operation of the pattern.
 - The context object allows you to use the pattern in a composition (rather than inheritance), and that may be it's primary value.
+- In Python, all the exceptions appeared, none were accidentally "disappeared". If you want to catch an exception, you can, but you are not forced to write reams of code all the time. They go up to where you want to catch them, or go all the way out if you forget. But they don't vanish, which is the worst of all possible cases. In C++, exception is not the exclusive approach. And in Java, programmers usually ignore some exceptions because of the annoyances.
 
 # Strategy
 Creating a method that behaves differently depending on the argument object that you pass it.
@@ -271,3 +272,26 @@ class DynamicProxyHandler implements InvocationHandler{
 
 ### Template Method
 - Functionality implemented in the base class uses one or more `abstract` methods defined in derived classes.
+
+### Singleton
+- Thread-safe singlegon:
+```
+public class Singleton { 
+
+    private volatile static Singleton uniqueInstance;
+ 
+    private Singleton() {}
+        
+    public static Singleton getInstance() { 
+	if(uniqueInstance == null) {
+        //只有第一次才彻底执行这里的代码
+	   synchronized() {
+	      //再检查一次
+	      if(uniqueInstance == null)
+		uniqueInstance = new Singleton();
+   	   }
+	}
+         return uniqueInstance;
+    }
+}
+```

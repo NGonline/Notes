@@ -2246,6 +2246,83 @@ Since there are only one task waiting on the lock, it's theoretically possible t
 while (conditionIsNotMet)
     wait();
 ```
+- The basic class that uses an explicit mutex and allows task suspension is the `Condition`:
+```
+class Car {
+    private Lock lock = new ReentrantLock();
+    private Condition condition = lock.newCondition();
+    private boolean waxOn = false;
+    public void waxed() {
+        lock.lock();
+        try {
+            waxOn = true;
+            condition.signalAll();
+        } finally {
+            lock.unlock;
+        }
+    }
+    public void buffed() {
+        lock.lock();
+        try {
+            waxOn = false;
+            condition.signalAll();
+        } finally {
+            lock.unlock;
+        }
+    }
+    public void waitForWaxing() throws InterruptedException {
+        lock.lock();
+        try {
+            while (waxOn == false)
+                condition.await();
+        } finally {
+            lock.unlock();
+        }
+    }
+    public void waitForBuffing() throws InterruptedException {
+        lock.lock();
+        try {
+            while (waxOn == true)
+                condition.await();
+        } finally {
+            lock.unlock();
+        }
+    }
+}
+class WaxOn implements Runnable {
+    private Car car;
+    public WaxOn(Car c) { car = c; }
+    public void run() {
+        try {
+            while (!Thread.interrupted()) {
+                TimeUnit.MILLISECONDS.sleep(200);
+                car.waxed();    // producer acts before waiting
+                car.waitForBuffing();
+            }
+        } catch (InterruptedException e) {
+            // ...
+        }
+    }
+}
+class WaxOff implements Runnable {
+    private Car car;
+    public WaxOff(Car c) { car = c; }
+    public void run() {
+        try {
+            while (!Thread.interrupted()) {
+                car.waitForWaxing();    // consumer waits before action
+                TimeUnit.MILLISECONDS.sleep(200);
+                car.buffed();
+            }
+        } catch (InterruptedException e) {
+            // ...
+        }
+    }
+}
+```
+- The `Condition` object contains no informationi about the state of the process, so you need to manage additional informationi to indicate process state (like `waxOn`).
+- Each call to `lock()` must immediately be followed by a `try-finally` clause to guarantee thet unlocking happens in all cases. As with the `synchronized` versions, a task must own the lock before it can call `await()`, `signal()`, or `signalAll()`.
+- The `Lock` and `Condition` objects are only necessary for more difficult threading problems.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

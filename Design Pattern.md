@@ -10,8 +10,7 @@
 - The basic concept of a pattern can be seen as the basic concept of program design: adding a layer of abstraction. One of the compelling motivations behind this is to separate things that change from things that stay the same.
 - The most difficult part of developing an elegant and cheap-to-maintain design is in discovering "the vector of change" (vector refers to the maximum gradient), or put another way, discovering where your greatest cost is.
 - The goal of design patterns is to isolate changes in your code. So in fact, inheritance and composition themselves can also be considered patterns.
-
-## Pattern Taxonomy
+- In Python, all the exceptions appeared, none were accidentally "disappeared". If you want to catch an exception, you can, but you are not forced to write reams of code all the time. They go up to where you want to catch them, or go all the way out if you forget. But they don't vanish, which is the worst of all possible cases. In C++, exception is not the exclusive approach. And in Java, programmers usually ignore some exceptions because of the annoyances.
 
 # Strategy
 Creating a method that behaves differently depending on the argument object that you pass it.
@@ -276,3 +275,26 @@ class DynamicProxyHandler implements InvocationHandler{
 
 ### Template Method
 - Functionality implemented in the base class uses one or more `abstract` methods defined in derived classes.
+
+### Singleton
+- Thread-safe singlegon:
+```
+public class Singleton { 
+
+    private volatile static Singleton uniqueInstance;
+ 
+    private Singleton() {}
+        
+    public static Singleton getInstance() { 
+	if(uniqueInstance == null) {
+        //只有第一次才彻底执行这里的代码
+	   synchronized() {
+	      //再检查一次
+	      if(uniqueInstance == null)
+		uniqueInstance = new Singleton();
+   	   }
+	}
+         return uniqueInstance;
+    }
+}
+```

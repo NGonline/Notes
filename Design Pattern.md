@@ -7,6 +7,11 @@
 - The GoF patterns often have a "context object" that the client programmer interacts with.
 - The context object often acts as a little facade to hide the complexity of the rest of the pattern, and in addition it will often be the controller that manages the operation of the pattern.
 - The context object allows you to use the pattern in a composition (rather than inheritance), and that may be it's primary value.
+- The basic concept of a pattern can be seen as the basic concept of program design: adding a layer of abstraction. One of the compelling motivations behind this is to separate things that change from things that stay the same.
+- The most difficult part of developing an elegant and cheap-to-maintain design is in discovering "the vector of change" (vector refers to the maximum gradient), or put another way, discovering where your greatest cost is.
+- The goal of design patterns is to isolate changes in your code. So in fact, inheritance and composition themselves can also be considered patterns.
+
+## Pattern Taxonomy
 
 # Strategy
 Creating a method that behaves differently depending on the argument object that you pass it.

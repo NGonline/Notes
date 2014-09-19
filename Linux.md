@@ -26,8 +26,11 @@
 - To print lines matching a pattern. It will search the standard input if no files (or a single `-`) are named. e.g. `command |grep XXX`
 - `-v` choose the lines without pattern
 - `-i` ignores case distinction
+- `-m NUM` stop reading a file after NUM matching lines
 - '{' and '(' need to escape in the regex
-- `grep` patterns are matched against individual lines so there is no way for a pattern to match a newline found in the input.
+- `grep` patterns are matched against individual lines so there is no way for a pattern to match a newline found in the input. `\n` separate the patterns around it and they are or'd together:`grep $'pattern1\npattern2'` is equivalent to `grep 'pattern1\|pattern2'`, and `grep $'abc\n'` matches every line.
+- "\d", "\D", "\s", "\S", "\w", "\W" are common extensions of basic regex. So they are not supported in the default `-G` mod. You need to use `-P`.
+- `-E` option supports regex for "+", "?", "|", "()", with some other improvements.
 
 ## sed
 - `sed 's/pattern/replace/option'` is a stream editor for filtering and transforming text.
@@ -267,6 +270,9 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `rename from to file` will rename the specified files by replacing the first occurrence of from in their name by to.
 - `rename .htm .html *.htm` will fix the extension of your html files.
 
+## rz
+- 
+
 ## scp
 - `scp -P 58422 convertid.jar data_algo@10.1.1.164:/data/home/data_algo/runchao.mao`
 
@@ -287,6 +293,12 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 ## test
 - Check file types and compare values: `test "abc" = "def" ;echo $?`
 - Equivalent to `[]`
+
+## top
+- VIRT: virtual memory usage
+- RES: resident memory usage
+- SHR: shared memory
+- DATA: the amount of physical memory devoted to other than executable code
 
 ## touch
 - Updates timestamp to current date and time. This means that all time attributes, `st_atime`, `st_mtime` and `st_ctime` are set to current date and time. You may become sure of this by `stat`.

@@ -964,7 +964,7 @@ public class Parcel{
 ```
 The syntax means to create an object of an anonymous class that's inherited from `Contents`. The reference returned is automatically upcast to a `Contents` reference.
 
-- If you're defining an anonymous inner class and want to use an object that's defined outside the anonymous inner class, the compiler requires that the argument reference be `final`. If you forget, you'll get a compile-time error.
+- If you're defining an anonymous inner class and want to use an object that's defined outside the anonymous inner class, the compiler requires that the argument reference be `final`. If you forget, you'll get a compile-time error. That's because Java doesn't support closures, whenever a local class is instantiated, the values of any local variables which it refers to are copied onto the heap, and the JVM can't then keep the valus in sync with the local variables, which is why they have to be final.
 - You can't have a named constructor in an anonymous class (since there's no name), but with instance initialization, you can, in effect, create a constructor for an anonymous inner class (but can't be overloaded of cource):
 ```
 pubic class Parcel{

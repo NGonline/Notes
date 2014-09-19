@@ -2005,24 +2005,26 @@ public class Interrupting {
 ```
 class Blocked implements Runnable {
     private volatile double d = 0.0;
-    try {
-        while (!Thread.interrupted()) {
-            NeedCleanup n1 = new NeedCleanup();
-            try {   // right after creation
-                TimeUnit.SECONDS.sleep(1);  // blocking
-                NeedCleanup n2 = new NeedCleanup();
+    public void run() {
+        try {
+            while (!Thread.interrupted()) {
+                NeedCleanup n1 = new NeedCleanup();
                 try {   // right after creation
-                    for (int i=1; i<2500000; i++)   // non-blocking
-                        d = d + (Math.PI + Math.E) / d;
+                    TimeUnit.SECONDS.sleep(1);  // blocking
+                    NeedCleanup n2 = new NeedCleanup();
+                    try {   // right after creation
+                        for (int i=1; i<2500000; i++)   // non-blocking
+                            d = d + (Math.PI + Math.E) / d;
+                    } finally {
+                        n2.cleanup();
+                    }
                 } finally {
-                    n2.cleanup();
+                    n1.cleanup();
                 }
-            } finally {
-                n1.cleanup();
             }
+        } catch (InterruptedException e) {
+            // exit via InterruptedException if interrupt() called before creation of n2
         }
-    } catch (InterruptedException e) {
-        // exit via InterruptedException if interrupt() called before creation of n2
     }
 }
 ```
@@ -2323,6 +2325,116 @@ class WaxOff implements Runnable {
 - The `Condition` object contains no informationi about the state of the process, so you need to manage additional informationi to indicate process state (like `waxOn`).
 - Each call to `lock()` must immediately be followed by a `try-finally` clause to guarantee thet unlocking happens in all cases. As with the `synchronized` versions, a task must own the lock before it can call `await()`, `signal()`, or `signalAll()`.
 - The `Lock` and `Condition` objects are only necessary for more difficult threading problems.
+- Synchronized queue allows one task at a time to insert or remove an element. This is provided in the `BlockingQueue` interface.
+- These queues also suspend a consumer task if that task tries to get an object from the queue and the queue is empty. If they are full, exceptions will be thrown. So they are much simpler and more reliable than `wait()` and `notifyAll()`.
+```
+BlockingQueue<Object> q = new LinkedBlockingQueue<Object>();    // unlimited size
+q = new ArrayBlockingQueue<Object>(3);  // fixed size
+q = new SynchronousQueue<Object>(); // size of 1
+```
+- You can ignore synchronization issues, which is implicitly managed by the queues and the design of the system:
+```
+class Toast {
+    public enum Status { DRY, BUTTERED, JAMMED }
+    private Status status = Status.DRY; // initial status
+    // ...
+    public void butter() { status = Status.BUTTERED; }
+    public void jam() { status = Status.JAMMED; }
+}
+class ToastQueue extends LinkedBlockingQueue<Toast> {}
+class Toaster implements Runnable {
+    private ToastQueue toastQueue;
+    // ...
+    public void run() {
+        try {
+            while (!Thread.interrupted()) {
+                Toast t = new Toast();
+                toastQueue.put(t);
+            }
+        } catch (InterruptedException e) {}
+    }
+}
+class Butterer implements Runnable {
+    private ToastQueue dryQueue, butteredQueue;
+    // ...
+    public void run() {
+        try {
+            while (!Thread.interrupted()) {
+                Toast t = dryQueue.take();
+                t.butter();
+                butteredQueue.put(t);
+            }
+        } catch (InterruptedException e) {}
+    }
+}
+class Jammer implements Runnable {
+    private ToastQueue butteredQueue, finishedQueue;
+    // ...
+    public void run() {
+        try {
+            while (!Thread.interrupted()) {
+                Toast t = butteredQueue.take();
+                t.jam();
+                finishedQueue.put(t);
+            }
+        } catch (InterruptedException e) {}
+    }
+}
+class Eater implements Runnable {
+    private ToastQueue finishedQueue;
+    // ...
+    public void run() {
+        try {
+            while (!Thread.interrupted()) {
+                Toast t = finishedQueue.take();
+            }
+        } catch (InterruptedException e) {}
+    }
+}
+```
+- `PipedReader` and `PipedWriter` can be thought of as a variation of the producer-consumer problem. The pipe is basically a blocking queue.
+```
+class Sender implements Runnable {
+    private PipedWriter out = new PipedWriter();
+    public PipedWriter getPipedWriter() { return out; }
+    public void run() {
+        try {
+            for (char c='A'; c<='z'; c++)
+                out.write(c);
+        } catch (IOException e) {
+        } catch (InterruptedException e) {
+        }
+    }
+}
+class Receiver implements Runnable {
+    private PipedReader in;
+    public Receiver(Sender sender) throws IOException {
+        in = new PipedReader(sender.getPipedWriter());
+    }
+    public void run() {
+        try {
+            while (true)
+                in.read();
+        } catch (IOException e) {
+        } catch (InterruptedException e) {
+        }
+    }
+}
+public class PipedIO {
+    public static void main(String[] args) {
+        Sender sender = new Sender();
+        Receiver receiver = new Receiver(sender);
+        ExecutorService exec = Executors.newCachedThreadPool();
+        exec.execute(sender);
+        exec.execute(receiver);
+        TimeUnit.SECONDS.sleep(2);
+        exec.shutdownNow();
+    }
+}
+```
+- When it does a `read()`, the pipe automatically blockes when there is no more data.
+- If you don't start completely constructed object (`PipeReader` and `PipeWriter` are both set properly to tasks), the pipe can produce inconsistent behavior on different platforms. (Note that `BlockingQueue` is more robust and easier to use).
+- An important difference between a `PipedReader` and normal I/O is seen when `shutdownNow()` is called --- the `PipeReader` is interruptible.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

@@ -2436,6 +2436,76 @@ public class PipedIO {
 - If you don't start completely constructed object (`PipeReader` and `PipeWriter` are both set properly to tasks), the pipe can produce inconsistent behavior on different platforms. (Note that `BlockingQueue` is more robust and easier to use).
 - An important difference between a `PipedReader` and normal I/O is seen when `shutdownNow()` is called --- the `PipeReader` is interruptible.
 
+## Deadlock
+- The dining philosophers problem is the classic demonstration of deadlock. If the philosophers spend very little time thinking, they will all be competing for the chopsticks while they try to eat, and deadlock will happen much more quickly.
+- Deadlock can occur if four conditions are simultaneously met:
+ - mutual exclusion: at least one resource used by the tasks must not be shareable;
+ - at least one task must be holding a resource and waiting to acquire a resource currently held by another task;
+ - a resource cannot be preemptively taken away from a task;
+ - a circular wait can happen.
+- You only need to prevent one of them from occurring to prohibit deadlock.
+- There is no language support to help prevent deadlock; it's up to you to avoid it by careful design.
+
+## New Library Components
+
+### CountDownLatch
+- This is used to synchronize one or more tasks by forcing them to wait for the completion of a set of operations being performed by other tasks.
+- A `CountDownLatch` is designed to be used in a one-shot fashion; the count cannot be reset. If you need a version that resets the count, you can use a `CyclicBarrier` instead.
+- A typical use is to divide a problem into n independently solvable tasks and create a `CountDownLatch` with a value of n.
+```
+// simulate completion of part of the task
+class TaskProtion implements Runnable {
+    private static int counter = 0;
+    // nextInt() is thread-safe, so can be static
+    private static Random rand = new Random(47);
+    private final CountDownLatch latch;
+    TaskPortion(CountDownLatch latch) {
+        this.latch = latch;
+    }
+    public void run() {
+        try {
+            doWork();
+            latch.countDown();  // not blocking
+        } catch (InterruptedException ex) {
+            // ...
+        }
+    }
+    public void doWork() throws InterruptedException {
+        TimeUnit.MILLISECONDS.sleep(rand.nextInt(2000));
+    }
+}
+// part of the system that must wait until the initial portion is complete
+class WaitingTask implements Runnable {
+    private static int counter = 0;
+    private final CountDownLatch latch;
+    WaitingTask(CountDownLatch latch) {
+        this.latch = latch;
+    }
+    public void run() {
+        try {
+            latch.await();
+        } catch (InterruptedException ex) {
+            // ...
+        }
+    }
+}
+public class CountDownLatchDemo {
+    static final int SIZE = 100;
+    public static void main(String[] args) throws Exception {
+        ExecutorService exec = Executors.newCachedThreadPool();
+        // all tasks work with the same single CountDownLatch
+        CountDownLatch latch = new CountDownLatch(SIZE);
+        for (int i=0; i<10; i++)
+            exec.execute(new WaitingTask(latch());
+        for (int i=0; i<SIZE; i++)
+            exec.execute(new TaskPortion(latch));
+        exec.shutdown();
+    }
+}
+```
+- Only the call to `await()` is blocked until the count reaches zero.
+- The JDK documentation is not forthcoming one whether methods are thread-safe, you shall have to discover this on a case-by-case basis.
+
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.
 - The basic types of `Collection` are `List`, `Set`, `Queue`, `Map`.

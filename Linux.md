@@ -218,11 +218,33 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `history -w` writes all your command history to .bash_history file. Normally this is done at the end of your session, when you close it by typing exit or by pressing <CTRL>+D.
 - If you prepend a command with space it won't be saved in history.
 
+## join
+- Join lines of two files on a common field, and write a line to standard output for each pair with identical join fields. Note that both files must be sorted on the join fields.
+- `join -t $'\t -o 1.1 2.2 1.2 -1 2 file1 -2 1 file2' outputs the first and second column of file1 and the second column of file2, of the join result of the second column of file1 with the first column of file2.
+- `-a1` is left outer join, `-a2` is right outer join, `-a1 -a2` is full outer join. But the null fields will not be replaced by empty character:
+```
+-bash-$ cat a
+1 2
+-bash-$ cat b
+2 3
+-bash-$ join -a1 -a2 a b
+1 2
+2 3
+```
+
+## kill
+- Send the specified signal to the specified process or process group. `kill -2` sends SIGINT, `kill -3` sends SIGQUIT, `kill -15` sends SIGTERM (default), `kill -9` sends SIGKILL, `kill -18` sends SIGCONT, `kill -19` sends SIGSTOP.
+- SIGQUIT：On POSIX-compliant platforms, SIGQUIT is the signal sent to a process by its controlling terminal when the user requests that the process perform a core dump. SIGQUIT can usually be induced with Control-\. On Linux, one may also use Ctrl-4 or, on the virtual console, the SysRq key.
+- SIGTERM：SIGTERM is the default signal sent to a process by the kill or killall commands. It causes the termination of a process, but unlike the SIGKILL signal, it can be caught and interpreted (or ignored) by the process. Therefore, SIGTERM is akin to asking a process to terminate nicely, allowing cleanup and closure of files. For this reason, on many Unix systems during shutdown, init issues SIGTERM to all processes that are not essential to powering off, waits a few seconds, and then issues SIGKILL to forcibly terminate any such processes that remain.
+- SIGINT：On POSIX-compliant platforms, SIGINT is the signal sent to a process by its controlling terminal when a user wishes to interrupt the process. SIGINT is sent when the user on the process' controlling terminal presses the interrupt the running process key — typically Control-C, but on some systems, the "delete" character or "break" key.
+- SIGKILL：On POSIX-compliant platforms, SIGKILL is the signal sent to a process to cause it to terminate immediately. When sent to a program, SIGKILL causes it to terminate immediately. In contrast to SIGTERM and SIGINT, this signal cannot be caught or ignored, and the receiving process cannot perform any clean-up upon receiving this signal.
+
 ## kinit
 - obtain and cache Kerberos ticket-granting ticket
 
 ## ln
-- `ln t l` creates a link to `t` with the name `l`. It differs from `cp` in not copying the contents of the file.
+- `ln t l` creates a link to `t` with the name `l`. It differs from `cp` in not copying the contents of the file. Both files point to the same physical blocks. If one of them is deleted, the other still works.
+- `ln -s` creates soft link. If the origin file is deleted, the link file will still exists but empty.
 
 ## ls 
 - Every file starts with dot is hidden. **-a** shows all files including the hidden ones. **-l** prints file list in **long** format: permissions, owner, group, size, timestamp (normally modification time) and filename.
@@ -305,6 +327,9 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 
 ## tr
 - Translate or delete characters: `tr -d 'x'` delete all x, `tr '\n' ' '` replace all `'\n'` with `' ' `
+
+## w
+- Show who is logged on and what they are doing.
 
 ## wc
 - Reads either standard input or a list of files, and generates: newline count (**-l**), word count (**-w**), byte count (**-c**), length of the longest line (**-L**).

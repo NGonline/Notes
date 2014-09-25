@@ -18,14 +18,43 @@
 ```
 # -*- coding: encoding -*-
 ```
+- In interactive mode, the last printed expression is assigned to the variable `_`. Don’t explicitly assign a value to it — you would create an independent local variable with the same name masking the built-in variable with its magic behavior.
 
 ## Values and Types
 - If you are not sure what type a value has, the interpreter can tell you: `type(1.7)`.
 - Integer with a leading zero is octonary.
 - `exec` is no longer a keyword in Python 3, but `nonlocal` became one.
 - In Python 3, the result of `59/60` is a float. The new operator `//` performs floor division.
+- If you don’t want characters prefaced by `\` to be interpreted as special characters, you can use raw strings by adding an `r` before the first quote.
+
+### String
+- String literals can span multiple lines. One way is using triple-quotes: `"""..."""` or `'''...'''`. End of lines are automatically included in the string, but it’s possible to prevent this by adding a `\` at the end of the line:
+```
+print("""\
+Usage: thingy [OPTIONS]
+     -h                        Display this usage message
+     -H hostname               Hostname to connect to
+""")
+# result is:
+# Usage: thingy [OPTIONS]
+#      -h                        Display this usage message
+#      -H hostname               Hostname to connect to
+```
+- Two or more string literals (i.e. the ones enclosed between quotes) next to each other are automatically concatenated. This only works with two literals though, not with variables or expressions.
+```
+>>> 'Py' 'thon'
+'Python'
+```
+- Attempting to use a index that is too large will result in an error. However, out of range slice indexes are handled gracefully when used for slicing.
+
+### List
+- All slice operations return a new list containing the requested elements. This means that the following slice returns a new (shallow) copy of the list.
 
 ## Functions
 - `int()` can convert floating-point values to integers, but it doesn't round off; it chops of the fraction part.
 - `import math` creates a module object named math.
 - Defining a function creates a variable with the same name. The value of it is a function object, which has type `function`.
+
+### Control Flow
+- In Python, like in C, any non-zero integer value is true; zero is false. The condition may also be a string or list value, in fact any sequence; anything with a non-zero length is true, empty sequences are false.
+- 

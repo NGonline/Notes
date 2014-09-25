@@ -5732,7 +5732,7 @@ System.out.println(f.format(1.135)); // 1.14
 - A complete list of constructs for building regular expressions can be found in the JDK documentation for **java.util.regex.Pattern**
 | Character | Meaning |
 | - | - |
-| . | any character|
+| . | any character except for '\n' |
 | ? | one or none |
 | + | one or more|
 | * | any times including none |
@@ -5761,6 +5761,7 @@ System.out.println(f.format(1.135)); // 1.14
 - `split()`, `replaceFirst()`, and `replaceAll()` are useful with regular expressions.
 - Many regular expression operations take `CharSequence` arguments (interface for `CharBuffer`, `String`, `StringBuffer`, `StringBuilder`).
 - `(?!)` means look-ahead assertion. `"(?!000|001)\\d{3}"` matches all three-digit string except "000" and "001".
+- Note that "\t", "\\t", and "\\\t" work exactly the same in Java regex. "\t" is replaced by Java with the character U+0009; "\\t" is interpreted by the regex parser as U+0009; "\\\t" is replaced by Java with "\u0009" and regex parser can also interpret it.
 
 ### Quantifiers
 - A quantifier describes the way that a pattern absorbs input text:

@@ -184,7 +184,8 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - Print selected parts of lines: `cut -d' ' -f2-` deletes the first colume
 
 ## date
-- `date -d "2012-04-10 -1 day" +%Y-%m-%d` returns 2012-04-09
+- `date -d "2012-04-10 -1 day" +%Y-%m-%d` returns 2012-04-09. So will `date -d "2012-04-10 yesterday"`
+- `%x` keeps leading zeros, `%-x` deletes leading zeros
 
 ## df
 - `df -h dir` show the disk usage of the dir
@@ -315,6 +316,14 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 ## test
 - Check file types and compare values: `test "abc" = "def" ;echo $?`
 - Equivalent to `[]`
+
+## time
+- `time command [arguments...]`. When command finishes, time writes a message to standard error giving timing statistics about this program run.
+- The statistics include:
+ - real time between invocation and termination
+ - the user CPU time: time spent on user space
+ - the system CPU time: time spent on kernel space (system call)
+- `-p` format the output, default is "read %f\nuser %f\nsys %f\n"
 
 ## top
 - VIRT: virtual memory usage

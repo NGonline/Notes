@@ -69,10 +69,11 @@ String s;
 ```
 public Object clone(){
     CloneClass o = null;
-    try{
+    try {
+        // The native method `clone()` in object make a shallow copy of object.
         o = (CloneClass)super.clone();
         o.fields = xxx;
-    } catch(CloneNotSupportedException e){
+    } catch (CloneNotSupportedException e) {
         e.printStackTrace();
     }
     return o;
@@ -2505,6 +2506,189 @@ public class CountDownLatchDemo {
 ```
 - Only the call to `await()` is blocked until the count reaches zero.
 - The JDK documentation is not forthcoming one whether methods are thread-safe, you shall have to discover this on a case-by-case basis.
+
+### CyclicBarrier
+- It's very similar to the `CountDownLatch`, except that it can be reused over and over, and it can be given a "barrier action" which is automatically executed when the count reaches zero.
+```
+class Horse implements Runnable {
+    private static CyclicBarrier barrier;
+    public Horse(CyclicBarrier barrier) { this.barrier = barrier; }
+    public void run() {
+        try {
+            barrier.await();
+        } catch (InterruptedException e) {
+        } catch (BrokenBarrierException e) {
+        }
+    }
+}
+public class HorseRace {
+    public static void main(String[] args) {
+        List<Horse> horses = new ArrayList<Horse>();
+        ExecutorService exec = Executors.newCachedThreadPool();
+        CyclicBarrier barrier = new CyclicBarrier(10, new Runnable(){
+            public void run() {
+                // sth to do after all works are done
+            }
+        });
+        for (int i=0; i<10; i++)
+            horses.add(new Horse(barrier));
+        TimeUnit.MILLISECONDS.sleep(100);
+        exec.shutDownNow();
+    }
+}
+```
+- Note that `CyclicBarrier` won't block the thread that creates it unless `await()` is also called.
+
+### DelayQueue
+- This is an unbounded `BlockingQueue` of objects that implement the `Delayed` interface. An object can only be taken from the queue when its delay has expired. The queue is sorted so that the object at the head has a delay that has expired for the longest time. If no delay has expired, then there is no head element and `poll()` will return `null`, so you cannot place `null` in the queue.
+- It's a variation of a priority queue.
+```
+class DelayedTask implements Runnable, Delayed {
+    private final int delta;
+    private final long trigger;
+    // ...
+    // from Delayed interface
+    public long getDelay(TimeUnit unit) {
+        return unit.convert(trigger - System.nanoTime(), NANOSECONDS);
+    }
+    // Delayed inherits Comparable for sorting
+    public int compareTo(Delayed arg) {
+        DelayedTask that = (DelayedTask) arg;
+        return (trigger<that.trigger) ? -1 : ((trigger==that.trigger) ? 0 : 1);
+    }
+    // ...
+    public static class EndSentinel extends DelayedTask {
+        private ExecutorService exec;
+        public EndSentinel(int delay, ExecutorService e) {
+            super(delay);
+            exec = e;
+        }
+        public void run() {
+            exec.shutdownNow();
+        }
+    }
+}
+class DelayedTaskConsumer implements Runnable {
+    private DelayQueue<DelayedTask> q;
+    // ...
+    public void run() {
+        try {
+            while (!Thread.interrupted())
+                q.take().run();
+        } catch (InterruptedException e) {
+        }
+    }
+}
+public class DelayQueueDemo {
+    public static void main(String[] args) {
+        ExecutorService exec = Executors.newCachedThreadPool();
+        DelayQueue<DelayedTask> queue = new DelayQueue<DelayedTask>();
+        for (int i=0; i<20; i++)
+            queue.put(new DelayedTask(rand.nextInt(5000)));
+        queue.add(new DelayedTask.EndSentinel(5000, exec)); // always the last one to run
+        exec.execute(new DelayedTaskConsumer(queue));
+    }
+}
+```
+- Note that `getDelay()` is a simple example of the Strategy design pattern, where part of the algorithm is passed in as an argument.
+
+### PriorityBlockingQueue
+- It's basically a priority queue that has blocking retrieval operation. You don't have to think about whether the queue has any elements in it when you're reading from it, because the queue will simply block the reader when it is out of elements.
+- Note that the tasks should implements `Comparable<>` interface:
+```
+// task with lowest priority will be executed at last
+public int compareTo(PrioritizedTask arg) {
+    return priority < arg.priority ? 1 : (priority > arg.priority ? -1 : 0);
+}
+```
+
+### ScheduleExecutor
+- You can set up `Runnable` objects to be executed at some time in the future.
+```
+public class GreenhouseScheduler {
+    ScheduledThreadPoolExecutor scheduler = new ScheduledThreadPoolExecutor(10);
+    // ...
+    public void schedule(Runnable event, long delay) {
+        scheduler.schedule(event, delay, TimeUnit.MILLISECONDS);
+    }
+    public void repeat(Runnable event, long initialDelay, long period) {
+        scheduler.scheduleAtFixedRate(event, initialDelay, period, TimeUnit.MILLISECONDS);
+    }
+    // ...
+    static class DataPoint {
+        final Calendar time;
+        final float temperature;
+        // ...
+    }
+    private Calendar lastTime = Calendar.getInstance();
+    {   // set start time
+        lastTime.set(Calendar.MINUTE, 30);
+        lastTime.set(Calendar.SECOND, 00);
+    }
+    private float lastTemp = 65.0f;
+    private Random rand = new Random(47);
+    List<DataPoint> data = Collections.synchronizedList(new ArrayList<DataPoint>());
+    class CollectData implements Runnable {
+        public void run() {
+            synchronized (GreenhouseScheduler.this) {
+                lastTime.set(Calendar.MINUTE, lastTime.get(Calendar.MINUTE)+30);
+                lastTemp = lastTemp + rand.nextFloat();
+                // Calendar must be cloned, otherwise all DataPoints hold references to the same lastTime
+                // for a basic object like Calendar, clone() is OK.
+                data.add(new DataPoint((Calendar)lastTime.clone(), lastTemp));
+            }
+        }
+    }
+}
+```
+
+### Semaphore
+- A counting semaphore allows n tasks to access the resource at the same time.
+- Object pool:
+```
+public class Pool<T> {
+    private int size;
+    private List<T> items = new ArrayList<T>();
+    private volatile boolean[] checkedOut;
+    private Semaphore available;
+    public Pool(Class<T> classObject, int size) {
+        this.size = size;
+         checkedOut = new boolean[size];
+         available = new Semaphore(size, true);
+         for (int i=0; i<size; i++)
+            try {
+                items.add(classObject.newInstance());   // assumes a default constructor
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+    }
+    public T checkOut() throws InterruptedException {
+        available.acquire();
+        return getItem();
+    }
+    public void checkIn(T x) {
+        if (relaeseItem(x)) // it's ok for another releaseItem() thread to start between two lines
+            available.release();
+    }
+    private synchronized T getItem() {
+        for (int i=0; i<size; i++)
+            if (!checkedOut[i]) {
+                checkedOut[i] = true;
+                return items.get(i);
+            }
+        return null;    // semaphore prevents reaching here
+    }
+    private synchronized boolean releaseItem(T item) {
+        int index = items.indexOf(item);
+        if (index == -1) return false;
+        if (checkedOut[index]) {
+            checkedOut[index] = false;
+            return true;
+        }
+        return false;
+    }
+}
+```
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

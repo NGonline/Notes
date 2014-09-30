@@ -203,8 +203,21 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `echo 'xxx' > f` replace instead of pending
 - `echo -e` enables backslash escape. The default setting disables this. `echo "a\tb"` will actually print `a\tb`
 
+## env
+- Run a program in a modified environment.
+- It can prints out all list of your environment variables which are passed to any program you execute.
+```
+bash~: foo="hello world"
+bash~: set | grep foo
+foo='hello world'
+bash~: env | grep foo
+bash~: export foo
+bash~: env | grep foo
+foo=hello world
+```
+
 ## export
-- export names to the environment of subsequently executed commands. The child process will inherit the names, but changes of them in the child processes will not affect the father process.
+- Export names to the environment of subsequently executed commands. The child process will inherit the names, but changes of them in the child processes will not affect the father process.
 - `=` without `export` will only affects the current process.
 - `export` or `export -p` prints a list of all names that are exported in this shell.
 
@@ -298,6 +311,10 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 
 ## scp
 - `scp -P 58422 convertid.jar data_algo@10.1.1.164:/data/home/data_algo/runchao.mao`
+- `sshpass -p "password" scp -r user@example.com:/some/remote/path /some/local/path` can avoid typing password.
+
+## set
+- Prints out all list of your shell variables (`printenv` lists all environment variables).
 
 ## shuf
 - generate random permutation of lines to standard output
@@ -309,6 +326,7 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 ## tar
 - `tar cf log.tar file.log` compress
 - `tar xf file.tar` unpack
+- same usage as `jar`
 
 ## tail
 - `tail -n 5 .profile` prints out exactly five last lines from .profile file

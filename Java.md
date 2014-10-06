@@ -2690,6 +2690,116 @@ public class Pool<T> {
 }
 ```
 
+### Exchanger
+- It's typically used when on task is creating objects that are expensive to produce and another task is consuming those objects; this way, more objects can be created at the same time as they are being consumed. When you call the `exchange()` method, it blocks until ithe partner task calls its `exchange` method:
+```
+// fills a List, then swaps for the empty one
+class ExchangerProducer<T> implements Runnable {
+    private Generator<T> generator;
+    private Exchange<List<T>> exchanger;
+    private List<T> holder;
+    ExchangerProducer(Exchanger<List<T>> exchg, Generator<T> gen, List<T> holder) {
+        exchanger = exchg;
+        generator = gen;
+        this.holder = holder;
+    }
+    public void run() {
+        try {
+            while (!Thread.interrupted()) {
+                for (int i=0; i<ExchangerDemo.size; i++)
+                    holder.add(generator.next());
+                // exchange full for empty
+                holder = exchanger.exchange(holder);
+            } catch (InterruptedException e) {
+                // ...
+            }
+        }
+    }
+}
+// the filling of one list and consuming of the other list can happen simultaneously
+class ExchangerConsumer<T> inplements Runnable {
+    private Exchanger<List<T>> exchanger;
+    private List<T> holder;
+    private volatile T value;
+    ExchangerConsumer(Exchanger<List<T>> ex, List<T> holder) {
+        exchanger = ex;
+        this.holder = holder;
+    }
+    pubilc void run() {
+        try {
+            while (!Thread.interrupted()) {
+                holder = exchanger.exchange(holder);
+                for (T x : holder) {
+                    value = x;
+                    holder.remove(x);   // must use CopyOnWriteArrayList
+                }
+            }
+        } catch  (InterruptedException e) {
+            // ...
+        }
+    }
+}
+```
+- Note that `CopyOnWriteArrayList` can tolerate the `remove()` method being called while the list is being traversed without throwing a `ConcurrentModificationException`.
+
+## Simulation
+-  Using concurrency, each component of a simulation can be its own task, and this makes a simulation much easier to program.
+
+### Bank Teller Simulation
+- Objects appear randomly and require a random amount of time to be served by a limited number of servers. It's possible to build the simulation to determine the ideal number of servers.
+- All control systems have stability issues; if they react too quickly to a change, they are unstable, and if they react too slowly, the system moves to one of its extremes.
+- Read-only objects don't need to be synchronized.
+
+### The Restaurant Simulation
+- `SynchronousQueue` has no internal capacity. It represents the place setting in front of a diner, to enforce the idea that only one course can be served at a time.
+- The management of complexity uses queues to communicate between tasks. It greatly simplifies the process of cuncurrent programming by inverting the control: the tasks do not directly interfere with each other. Instead, the tasks send objects to each other via queues. The receiving task handles the object, treating it as a message rather than having the message inflicted upon it.
+
+### Distributing Work
+- Consider a hypothetical robotic assembly line for automobiles. Each `Car` will be built in several stages, starting with chassis creation, followed by the attachment of the engine, drive train, and wheels.
+```
+// ...
+class RobotPool {
+    private Set<Robot> pool = new HashSet<Robot>();
+    public synchronized void add(Robot r) {
+        pool.add(r);
+        notifyAll();
+    }
+    // hire some kind of robot
+    public synchronized void hire(Class<? extends Robot> robotType, Assembler d) throws InterruptedException {
+        for (Robot r : pool) {
+            if (r.getClass().equals(robotType)) {
+                pool.remove(r);
+                r.assignAssembler(d);
+                r.engage();
+                return;
+            }
+        }
+        wait(); // No required robot in the pool now
+        hire(robotType, d); // try again
+    }
+}
+// ...
+```
+- Class that is both read and written needs to be synchronized, even if in current program it is forced serialized access by queues or something else. If you try to connect it to some other systems, you will fall into a trap. Synchronization is a much easier rule to follow than serialized access.
+
+## Performance Tuning
+- When you peruse the **concurrent** library, it can be difficult to discern which classes are inteded for regular use (such as `BlockingQueue`s) and which ones are only for improving performance.
+
+### Mutex
+- Microbenchmarking: testing a feature in isolation, out of context:
+ - we will only see the true performance difference if the mutexes are under contention, so there must be multiple tasks trying to access the mutexed code sections
+ - we need to prevent the possibility that the compiler can predict the outcome
+- We need multiple tasks, and not just tasks that change internal values, but also tasks that read those values (otherwise the optimizer may recognize that the values are never being used). In addition, the calculation must be complex and unnpredictable enough that the compiler will have no chance to perform aggressive optimizations.
+- Extra cost during the tests can be prevented by executing tasks via a `FixedThreadPool` in an attempt to keep all the thread creation at the beginning.
+- Basically, if more than one `Atomic` object is involved, you will probably be forced to give up and use more conventional mutexes.
+- There can be significant shifts in behavior when different numbers of threads are used and when the program is run for longer periods of time.
+- It's fairly clear that using `Lock` is usually significantly more efficient than using `synchronized`, and it also appears that the overhead of `synchronized` varies widely, while `Lock`s are relatively consistent.
+- `synchronized` keyword produces much more readable code. It makes sense to start with the `synchronized` keyword and only change to `Lock` objects when you are tuning for performance. It's nicer when you can use the `Atomic` classes. But it's only useful in very simple cases, generally when you only have one `Atomic` object that's being modified and when that object is independent from all other objects.
+- The only way to know is --- when you're tuning for performance, no sooner --- to try the different approaches and see what impact they have.
+
+### Lock-Free Containers
+- 
+
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.
 - The basic types of `Collection` are `List`, `Set`, `Queue`, `Map`.

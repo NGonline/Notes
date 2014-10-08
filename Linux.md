@@ -260,6 +260,10 @@ foo=hello world
 - `ln t l` creates a link to `t` with the name `l`. It differs from `cp` in not copying the contents of the file. Both files point to the same physical blocks. If one of them is deleted, the other still works.
 - `ln -s` creates soft link. If the origin file is deleted, the link file will still exists but empty.
 
+## locale
+- Prints out all locale variables which are used by programs for setting up number, address, phone format, etc. according to the format of the specified country.
+- Variable `LANG` is used by programs to determine which language to use when interacting with you.
+
 ## ls 
 - Every file starts with dot is hidden. **-a** shows all files including the hidden ones. **-l** prints file list in **long** format: permissions, owner, group, size, timestamp (normally modification time) and filename.
 - Note that **-l** shows the size of the directory in *blocks*.

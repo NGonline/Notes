@@ -22,6 +22,7 @@
 
 ## Values and Types
 - If you are not sure what type a value has, the interpreter can tell you: `type(1.7)`.
+- There are two kinds of integers in Python 2: `int` and `long`. `sys.maxint` is platform-dependent, you need to append `L` to define a `long`. In Python 3, there is only `int`.
 - Integer with a leading zero is octonary.
 - `exec` is no longer a keyword in Python 3, but `nonlocal` became one.
 - In Python 3, the result of `59/60` is a float. The new operator `//` performs floor division.
@@ -348,4 +349,59 @@ from ..filters import equalizer
 - Note that relative imports are based on the name of the current module. Since the name of the main module is always "__main__", modules intended for use as the main module of a Python application must always use absolute imports.
 
 # Input and Output
-- 
+
+## Format
+- The `str()` function is meant to return representations of values which are fairly human-readable, while `repr()` is meant to generate representations which can be read by the interpreter (or will force a `SyntaxError` if there is no equivalent syntax). For objects which don’t have a particular representation for human consumption, `str()` will return the same value as `repr()`. Many values, such as numbers or structures like lists and dictionaries, have the same representation using either function. Strings, in particular, have two distinct representations.
+```
+>>> s = 'hello world'
+>>> str(s)
+'hello world'
+>>> repr(s)
+"'hello world'"
+```
+- Different ways of formatting:
+```
+# right adjust, if the input is too long, it will be returned unchanged rather than truncated
+print(str(x).rjust(4), str(y).rjust(4)) # print adds spaces between its arguments
+print('{0:4d} {1:4d}'.format(x, y))
+
+# zero padding
+'-3.14'.zfill(7)
+
+# usage of format()
+'we are the {} who say "{}!"'.format('knights', 'Ni')
+'This {food} is {adjective}.'.format(food='spam', adjective='absolutely horrible')
+'The story of {0}, {1}, and {other}.'.format('Bill', 'Manfred', other='Georg')
+```
+- `!a` (apply ascii()), `!s` (apply str()) and `!r` (apply repr()) can be used to convert the value before it is formatted:
+```
+>>> print('The value of PI is approximately {}.'.format(math.pi))
+The value of PI is approximately 3.14159265359.
+>>> print('The value of PI is approximately {!r}.'.format(math.pi))
+The value of PI is approximately 3.141592653589793.
+```
+- If you have a really long format string that you don’t want to split up, it would be nice if you could reference the variables to be formatted by name instead of by position:
+```
+>>> table = {'Sjoerd': 4127, 'Jack': 4098, 'Dcab': 8637678}
+>>> print('Jack: {0[Jack]:d}; Sjoerd: {0[Sjoerd]:d}; Dcab: {0[Dcab]:d}'.format(table))
+>>> print('Jack: {Jack:d}; Sjoerd: {Sjoerd:d}; Dcab: {Dcab:d}'.format(**table))
+```
+This is particularly useful in combination with the built-in function `vars()`, which returns a dictionary containing all local variables.
+
+## Reading and Writing Files
+- Mode can be 'r' when the file will only be read, 'w' for only writing (an existing file with the same name will be erased), and 'a' opens the file for appending; any data written to the file is automatically added to the end. 'r+' opens the file for both reading and writing. The mode argument is optional; 'r' will be assumed if it’s omitted. 'b' appended to the mode opens the file in binary mode.
+- To read a file’s contents, call `f.read(size)`, which reads some quantity of data and returns it as a string or bytes object. size is an optional numeric argument. When size is omitted or negative, the entire contents of the file will be read and returned. If the end of the file has been reached, `f.read()` will return an empty string.
+- The returned string of `readline()` includes the final `\n`.
+- If you want to read all lines of a file in a list, you can also use `list(f)` or `f.readlines()`.
+- `f.tell()` returns the current position (so does `f.write()`). To change the file object's position, use `f.seek(offset, from_what)`. A `from_what` value of 0 measures from the beginning of the file (default), 1 uses the current file position, and 2 uses the end of the file as the reference point.
+- In text files (those opened without a b in the mode string), only seeks relative to the beginning of the file are allowed.
+- It is good practice to use the with keyword when dealing with file objects:
+```
+with open('workfile', 'r') as f:
+    read_data = f.read()
+```
+
+## Saving Structured Data with JSON
+- View JSON string: `json.dumps(x)` or `json.dump(x,f)` (`f` is a text file)
+- Decode the object: `x = json.load(f)` (`f` is a text file)
+

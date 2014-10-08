@@ -1049,7 +1049,7 @@ public abstract class Event{
     public abstract void action();
 }
 ```
-- Inner classes allow you to have multiple derived versioins of the same base class within a single class:
+- Inner classes allow you to have multiple derived versions of the same base class within a single class:
 ```
 public class GreenhouseControls extends Controller{
     private boolean light = false; // will need two references if LightOn and LightOff are not inner class

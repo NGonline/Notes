@@ -1137,6 +1137,15 @@ public class Outer{
 - The design of your program (like simulations) can be greatly simplified. They generally imvolve many interacting elements, each with "a mind of its own".
 - Java's threading is preemptive, which means that a scheduling mechanism provides time slices for each thread. So you can generally assume that you will not have enough threads available to provice one for each element in a large simulation. A typical approach is the use of cooperative multithreading.
 - In general, threads enable you to create a more loosely coupled design.
+- Threads provide light execution context switches (on the order of 100 instructions), which switch changes only program execution and local variables, rather than heavy process context switches (thousands of instructions), which must exchange the full memory space.
+- The main drawbacks to multithreading are:
+1. Slowdown occurs while threads are waiting for shared resources;
+2. Addition CPU overhead;
+3. Unrewarded complexity arises from poor design decisions;
+4. Opportunities for pathologies such as starving, racing, deadlock, and livelock;
+5. Inconsistencies occur across platforms. You might get badly surprised when you distribute it.
+- There is an upper bound to the number of threads you'll want to create, because at some number, threads seem to become balky.
+- If your threading issues get large and complex, consider using a language like Erlang, which is one of several functional languages that are specialized for threading.
 
 ## Basic Threading
 - Your code does not need to know whether it is running on a single CPU or many. Thus, using threads is a way to create trasparently scalable programs.
@@ -2798,7 +2807,120 @@ class RobotPool {
 - The only way to know is --- when you're tuning for performance, no sooner --- to try the different approaches and see what impact they have.
 
 ### Lock-Free Containers
-- 
+- Early containers like `Vector` and `Hashtable` had many `synchronized` methods. In Java 1.2, the `Collections` class was given various `static` "synchronized" decoration methods to synchronize the different types of containers, but the overhead is still based on `synchronized` locking. Java SE5 has added new containers specifically to increase thread-safe performance, using clever techniques to eliminate locking.
+- In lock-free containers, the readers can only see the results of completed modifications. A modification is performed on a separate copy of a portioin of the data structure (or sometimes a copy of the whole thing), and this copy is invisible during the modification process. Only when the modification is complete is the modified structure atomically swapped with the "main" data structure, and after that readers will see the modification.
+- `CopyOnWriteArrayList` does not throw `ConcurrentModificationException` when multiple iterators are traversing and modifying the list. `CopyOnWriteArraySet` uses `CopyOnWriteArrayList` to achieve its lock-free behavior.
+- `ConcurrentHashMap` and `ConcurrentLinkedQueue` uses similar techniques, but only portions of the containers are copied and modified rather than the entire container.
+- Running test multiple times stabilize the output, which can change because of JVM activities like hotspot optimization and garbage collection.
+- A synchronized `ArrayList` (`Collections.synchronizedList(new ArrayList<Integer>(size))`) has roughly the same performance regardless of the number of readers and writers. The `CopyOnWriteArrayList` is gramatically faster when writers are few. Of course, you must try the two different approaches in specific application to know for sure which one is best.
+- Since `CopyOnWriteArraySet` uses `CopyOnWriteArrayList`, its behavior will be similar.
+- The impact of adding writers to a `ConcurrentHashMap` (`Collections.synchronizedMap(new HashMap<Integer,Integer>(size))`) is even less evident than for a `CopyOnWriteArrayList`. It uses a different technique that clearly minimizes the impact of writes.
+
+### Optimistic Locking
+- You do not actually uses a mutex when you are performing a calculation, but after the calculation is finished and you're ready to update the `Atomic` object, you use a method called `compareAndSet()`. You hand it the old value and the new value, and if the old value doesn't agree with the current value, this means that some other task has modified the object in the meantime (it won't be set and return false).
+- If you can't do something to recover, then you cannot use this technique and must use conventional mutexes instead. Perhaps you can retry the operation, or it's OK just to ignore.
+```
+int oldvalue = atomicInteger.get();
+int newvalue = someCalculation(atomicInteger.get());
+if (!atomicInteger.compareAndSet(oldvalue, newvalue)) {
+    // ...
+}
+```
+- All this is done in the name of performance.
+
+### ReadWriteLock
+- `ReadWriteLock`s optimize the situation where you write to a data structure relatively infrequently, but multiple tasks read from it often. It allows you to have many readers at one time as long as no one is attempting to write. If the write lock is held, then no readers are allowed until the write lock is released.
+- It's completely uncertain whether a `ReadWriteLock` will improve the performance. The lock is more complex, so short operations will not see the benefits. The only way to know is to try it out.
+```
+public class ReaderWriterList<T> {
+    private ArrayList<T> lockedList;
+    private ReentrantReadWriteLock lock = new ReentrantReadWriteLock(true);
+    public ReaderWriterList(int size, T initialValue) {
+        lockedList = new ArrayList<T>(Collections.nCopies(size, initialValue));
+    }
+    public T set(int index, T element) {
+        Lock wlock = lock.writeLock();
+        wlock.lock();
+        try {
+            return lockedList.set(index, element);
+        } finally {
+            wlock.unlock();
+        }
+    }
+    public T get(int index) {
+        Lock rlock = lock.readLock();
+        rlock.lock();
+        try {
+            return lockedList.get(index);
+        } finally {
+            rlock.unlock();
+        }
+    }
+}
+```
+- This is a rather sophisticated tool.
+
+### Active Objects
+- It's a different model for concurrency, also called actors (the field is called agent-based programming). With active objects, we serialize messages rather than methods, which means we no longer need to guard against problems that happen when a task is interrupted midway through its loop.
+- Java SE5 `Future` comes in handy:
+```
+public class ActiveObjectDemo {
+    private ExecutorService ex = Executors.newSingleThreadExecutor();
+    private Random rand = new Random(47);
+    private void pause(int factor) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(100 + rand.nextInt(factor));
+        } catch (InterruptedException e) {
+        }
+    }
+    public Future<Integer> calculateInt(final int x, final int y) {
+        return ex.submit(new Callable<Integer>() {  // convert method calls into messages
+                public Integer call() {
+                    pause(500);
+                    return x+ y ;
+                }
+            };
+    }
+    public Future<Float> calculateFloat(final float x, final float y) {
+        return ex.submit(new Callable<Integer>() {  // convert method calls into messages
+                public Float call() {
+                    pause(2000);
+                    return x+ y ;
+                }
+            };
+    }
+    public void shutdown() { ex.shutdown(); }
+    public static void main(String[] args) {
+        ActiveObjectDemo d1 = new ActiveObjectDemo();
+        List<Future<?>> results = new CopyOnWriteArrayList<Future<?>>();
+        for (float f=0.0f; f<1.0f; f+=0.2f)
+            results.add(d1.calculateFloat(f, f));
+        for (int i=0; i<5; i++)
+            results.add(d1.calculateInt(i, i));
+        while (results.size() > 0) {
+            for (Future<?> f : results)
+                if (f.isDone()) {
+                    try {
+                        System.out.println(f.get());
+                    } catch (Exception e) {
+                    }
+                    results.remove(f);
+                }
+        }
+        d1.shutdown();
+    }
+}
+```
+- In order to inadvertently prevent coupling between threads, any arguments to pass to an active-object method call must be either read-only, other active objects, or disconnected objects, which are objects that have no connection to any other task.
+- With active objects:
+- In order to inadvertently prevent coupling between threads, any arguments to pass to an active-object method call must be either read-only, other active objects, or disconnected objects, which are objects that have no connection to any other task.
+- With active objects:
+1. Each object has its own worker thread;
+2. Each object maintains total control of its own fields;
+3. All communication between active objects happens in the form of messages between those object;
+4. All messages between active objects are enqueued.
+- Since an active-object system only communicates via messages, two objects acnnot be blocked while contending to call a method on another object, and this means that deadlock cannot occur.
+- Because the worker thread within an active object only executes on message at a time, there is no resource contention and you don't have to worry about synchronizing methods. Synchronization still happens, but it happens on the message level, by enqueuing the method calls so that only one can happen at a time.
 
 # Containers
 - A container will expand itself whenever necessary to accommodate everything you place inside it.

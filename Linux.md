@@ -1,5 +1,8 @@
 [TOC]
 
+# Introduction
+- This is the Unix philosophy: Write programs that do one thing and do it well. Write programs to work together. Write programs to handle text streams, because that is a universal interface.
+
 # Text Processor
 
 ## awk
@@ -36,6 +39,7 @@
 - `sed 's/pattern/replace/option'` is a stream editor for filtering and transforming text.
 - `sed -ne 'mp' filename` shows the m-th line.
 - `sed -ne 'j,kp' filename` shows the j-th to the k-th lines.
+- `sed '1!G;h;$!d' t.txt` reverse the lines of a file.
 
 ## vim
 
@@ -145,6 +149,19 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `$''` are treated as ANSI-C quoting, with more bachslash-escaped characters.
 
 ## Redirection
+- Almost every Linux program opens at least these 3 files when started: stdin, stdout, stderr. This is how it reads:
+```
+Start Program 1
+    Start reading data from keyboard
+    Start writing errors to display
+    Start Program 2
+        Start reading input from Program 1
+        Start writing errors to Display
+        Start Program 3
+            Start reading input from Program 2
+            Start writing errors to Display
+            Start writing data to Display
+```
 - stdin is 0, stdout is 1, stderr is 2: `&> file` redirect stdout and stderr to file; `2> file` redirect stdout to file; `2>&1` redirect stderr to stdout; `>&file` redirect stdout to file
 - `command > file` redirect the output and rewrite the file
 - `command >> file` append the file
@@ -187,6 +204,13 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 - `date -d "2012-04-10 -1 day" +%Y-%m-%d` returns 2012-04-09. So will `date -d "2012-04-10 yesterday"`
 - `%x` keeps leading zeros, `%-x` deletes leading zeros
 
+## dd
+- Copy a file, converting and formatting according to the operands:
+ - if=FILE : read from FILE instead of stdin
+ - of=FILE : write to FILE instead of stdout
+ - bs=BYTES : read and write BYTES bytes at a time
+ - count=BLOCKS : copy only BLOCKS input blocks
+
 ## df
 - `df -h dir` show the disk usage of the dir
 
@@ -224,6 +248,10 @@ foo=hello world
 ## find
 - `find /path/ -name xxx`
 - `-iname` ignore upper or lower cases
+
+## gzip
+- `gzip` compress
+- `gzip -d` unpack
 
 ## iconv
 - `iconv -f a -t b` change charset from a to b
@@ -327,6 +355,9 @@ foo=hello world
 - start from 1
 - Note that "\t" doesn't work fine in some implementation of `sort`. `sort -t $'\t' -o Density10m -k 2,2rn part-00000` only works for bash. The dollar sign tells bash to use ANSI-C quoting. `"Ctrl-v<tab>"` also works.
 
+## tac
+- Concatenate and print files in reverse.
+
 ## tar
 - `tar cf log.tar file.log` compress
 - `tar xf file.tar` unpack
@@ -334,6 +365,10 @@ foo=hello world
 
 ## tail
 - `tail -n 5 .profile` prints out exactly five last lines from .profile file
+
+## tcpdump
+- Prints out a description of the contents of packets on a network interface that match the user-defined boolean expression.
+- `tcpdump -XX -r` read packets and print headers and datas of each packet.
 
 ## test
 - Check file types and compare values: `test "abc" = "def" ;echo $?`
@@ -358,6 +393,7 @@ foo=hello world
 
 ## tr
 - Translate or delete characters: `tr -d 'x'` delete all x, `tr '\n' ' '` replace all `'\n'` with `' ' `
+- `-s SET` squeezes repeats: replace each input sequence of a repeated character that is in SET into a single occurrence.
 
 ## w
 - Show who is logged on and what they are doing.
@@ -395,11 +431,21 @@ struct stat {
    time_t    st_ctime;   /* time of last status change */
 };
 ```
+- **Ctrl+D** produces EOF character (ASCII 04).
 
 ## .bash_rc
 - Every time you log into this user, the commands in it will be executed.
 
-## 
+## /dev/null
+- It's a special device file that discards all data written to it but reports that the write operation succeeds.
+
+## /dev/zero
+- Once you read it, it will provide infinite number of NULL (ASCII 00) character.
+- It's usually used to create a fixed-size of empty file:
+```
+# create a file of 1 MB, filled with 0
+dd if=/dev/zero of=foobar count=1024 bs=1024
+```
 
 # Reference
 [1] Learn Linux the Hard Way. http://nixsrv.com/?id=llthw

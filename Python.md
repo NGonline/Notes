@@ -26,6 +26,17 @@
 - Integer with a leading zero is octonary.
 - `exec` is no longer a keyword in Python 3, but `nonlocal` became one.
 - In Python 3, the result of `59/60` is a float. The new operator `//` performs floor division.
+- For use cases which require exact decimal representation, try using the `decimal `module. Another form of exact arithmetic is supported by the `fractions` module which implements arithmetic based on rational numbers (so the numbers like 1/3 can be represented exactly).
+- `round(n, d)` rounds `n` to the `d` digit. Values are rounded to the closest multiple of 10 to the power minus `d`.
+- The `float.as_integer_ratio()` method expresses the value of a float as a fraction.
+- Another helpful tool is the `math.fsum()` function which helps mitigate loss-of-precision during summation. It tracks “lost digits” as values are added onto a running total. That can make a difference in overall accuracy so that the errors do not accumulate to the point where they affect the final total:
+```
+>>>
+>>> sum([0.1] * 10) == 1.0
+False
+>>> math.fsum([0.1] * 10) == 1.0
+True
+```
 - If you don’t want characters prefaced by `\` to be interpreted as special characters, you can use raw strings by adding an `r` before the first quote.
 - The operators `is` and `is not` compare whether two objects are really the same object; this only matters for mutable objects like lists.
 
@@ -48,6 +59,7 @@ Usage: thingy [OPTIONS]
 'Python'
 ```
 - Attempting to use a index that is too large will result in an error. However, out of range slice indexes are handled gracefully when used for slicing.
+- `r'xxx'` means raw string without escaping. `r'\\'` is exactly two backslashes
 
 ### List
 - All slice operations return a new list containing the requested elements. This means that the following slice returns a new (shallow) copy of the list.
@@ -405,3 +417,289 @@ with open('workfile', 'r') as f:
 - View JSON string: `json.dumps(x)` or `json.dump(x,f)` (`f` is a text file)
 - Decode the object: `x = json.load(f)` (`f` is a text file)
 
+# Exceptions
+- Basic exception handling:
+```
+try:
+    f = open('myfile.txt')
+    s = f.readline()
+    i = int(s.strip())
+except OSError as err:
+    print("OS error: {0}".format(err))
+except (RuntimeError, TypeError, ValueError):
+    print("Could not convert data to an integer.")
+except:
+    print("Unexpected error:", sys.exc_info()[0])
+    raise
+```
+- An optional else clause can follow all except clauses. It's useful for code that must be executed if the try clause does not raise an exception:
+```
+try:
+    f = open(arg, 'r')
+except IOError:
+    print('cannot open', arg)
+else:
+    print(arg, 'has', len(f.readlines()), 'lines')
+    f.close()
+```
+- The use of the else clause is better than adding additional code to the try clause because it avoids accidentally catching an exception that wasn’t raised by the code being protected by the try-except statement.
+- The except clause may specify a variable after the exception name. The variable is bound to an exception instance with the arguments stored in instance.args. For convenience, the exception instance defines __str__() so the arguments can be printed directly without having to reference .args. One may also instantiate an exception first before raising it and add any attributes to it as desired:
+```
+try:
+   raise Exception('spam', 'eggs')
+except Exception as inst:
+   print(type(inst))    # the exception instance
+   print(inst.args)     # arguments stored in .args
+   print(inst)          # __str__ allows args to be printed directly,
+                        # but may be overridden in exception subclasses
+   x, y = inst.args     # unpack args
+   print('x =', x)
+   print('y =', y)
+```
+- `raise` indicates the exception to be raised. This must be either an exception instance or an exception class (or empty for a re-raise).
+
+### User-Defined Exceptions
+- Exceptions should typically be derived from the `Exception` class, either directly or indirectly:
+```
+class MyError(Exception):
+    """My exception
+    
+    Attributes:
+        value -- just for output
+    """
+    
+    def __init__(self, value):
+        self.value = value
+    def __str__(self):
+        return repr(self.value)
+```
+
+### Clean-Up Actions
+- A finally clause is always executed before leaving the try statement, whether an exception has occured or not:
+```
+def divide(x, y):
+    try:
+        result = x / y
+    except ZeroDivisionError:
+        print("division by zero!")
+    else:
+        print("result is", result)
+    finally:
+        print("executing finally clause")
+```
+- Some objects define standard clean-up actions to be undertaken when the object is no longer needed, regardless of whether or not the operation using the object succeeded or failed. The `with` statement allows objects like files to be used in a way that ensures they are always cleaned up promptly and correctly:
+```
+with open("myfile.txt") as f:
+    for line in f:
+        print(line, end="")
+```
+- Objects which, like files, provide predefined clean-up actions will indicate this in their documentation.
+
+# Classes
+
+## Scope and Namespace
+- The statements executed by the top-level invocation of the interpreter, either read from a script file or interactively, are considered part of a module called `__main__`.
+- The namespace containing the built-in names is created when the Python interpreter starts up, and is never deleted. The global namespace for a module is created when the module definition is read in; normally, module namespaces also last until the interpreter quits. The local namespace for a function is created when the function is called, and deleted when the function returns or raises an exception that is not handled within the function.
+- Although scopes are determined statically, they are used dynamically. At any time during execution, there are at least three nested scopes whose namespaces are directly accessible:
+ - the innermost scope, which is searched first, contains the local names
+ - the scopes of any enclosing functions, which are searched starting with the nearest enclosing scope, contains non-local, but also non-global names
+ - the next-to-last scope contains the current module’s global names
+ - the outermost scope (searched last) is the namespace containing built-in names
+- To rebind variables found outside of the innermost scope, the `nonlocal` statement can be used; if not declared `nonlocal`, those variable are read-only (an attempt to write to such a variable will simply create a new local variable in the innermost scope, leaving the identically named outer variable unchanged). `global` is similar, if not declared, the variable is read-only.
+- A special quirk of Python is that – if no `global` statement is in effect – assignments to names always go into the innermost scope. Assignments do not copy data — they just bind names to objects. The same is true for deletions. In particular, `import` statements and function definitions bind the module or function name in the local scope.
+- The `global` statement can be used to indicate that particular variables live in the global scope and should be rebound there; the `nonlocal` statement indicates that particular variables live in an enclosing scope and should be rebound there.
+```
+def scope_test():
+    def do_local():
+        spam = "local spam"
+    def do_nonlocal():
+        nonlocal spam
+        spam = "nonlocal spam"
+    def do_global():
+        global spam
+        spam = "global spam"
+    spam = "test spam"
+    do_local()
+    print("After local assignment:", spam)
+    do_nonlocal()
+    print("After nonlocal assignment:", spam)
+    do_global()
+    print("After global assignment:", spam)
+
+scope_test()
+print("In global scope:", spam)
+
+# After local assignment: test spam
+# After nonlocal assignment: nonlocal spam
+# After global assignment: nonlocal spam
+# In global scope: global spam
+```
+
+## Class Objects
+- Class objects support two kinds of operations: attribute references and instantiation:
+```
+class MyClass:
+    """A simple example class"""
+    def f(self):
+        return 'hello world'
+MyClass.f()
+MyClass.__doc__
+x = MyClass()
+```
+- When a class defines an `__init__()` method, class instantiation automatically invokes it.
+- Often, the first argument of a method is called `self`. This is nothing more than a convention: the name self has absolutely no special meaning to Python.
+
+## Instance Objects
+- The only operations understood by instance objects are attribute references.
+- Suppose `x` is an instance of `MyClass`. `x.f` is a valid method reference, since `MyClass.f` is a function, but `x.i` is not, since `MyClass.i` is not. But `x.f` is not the same thing as `MyClass.f` — it is a method object, not a function object.
+- The call `x.f()` is exactly equivalent to `MyClass.f(x)`.
+- Any function object that is a class attribute defines a method for instances of that class. It is not necessary that the function definition is textually enclosed in the class definition: assigning a function object to a local variable in the class is also ok:
+```
+def f1(self, x, y):
+    return min(x, x+y)
+    
+class C:
+    f = f1
+    def g(self):
+        return 'hello world'
+    h = g
+```
+- Each value is an object, and therefore has a class. It is stored as `object.__class__`.
+
+## Class and Instance Variables
+- Instance variables are for data unique to each instance and class variables are for attributes and methods shared by all instances of the class:
+```
+class Dog:
+    kind = 'canine'
+    def __init__(self, name):
+        self.name = name
+```
+
+## Inheritance
+- The syntax for a derived class definition looks like:
+```
+class DerivedClassName(modname.BaseClassName):
+    ...
+    ...
+```
+- If a requested attribute is not found in the class, the search proceeds to look in the base class.
+- All methods in Python are effectively `virtual`.
+- There is a simple way to call the base class method directly: `BaseClassName.methodname(self, arguments)`.
+- Python has two built-in functions that work with inheritance:
+ - Use `isinstance()` to check an instance’s type: `isinstance(obj, int)` will be `True` only if `obj.__class__` is `int` or some class derived from `int`.
+ - Use `issubclass()` to check class inheritance: `issubclass(bool, int)` is `True` since `bool` is a subclass of int. However, `issubclass(float, int)` is False since `float` is not a subclass of `int`.
+- Python supports a form of multiple inheritance as well:
+```
+class DerivedClassName(Base1, Base2, Base3):
+    ...
+    ...
+```
+- For most purposes, in the simplest cases, you can think of the search for attributes inherited from a parent class as depth-first, left-to-right, not searching twice in the same class where there is an overlap in the hierarchy. In fact, it is slightly more complex than that; the method resolution order changes dynamically to support cooperative calls to `super()`.
+
+## Private Variables
+- There is a convention that is followed by most Python code: a name prefixed with an underscore (e.g. `_spam`) should be treated as a non-public part of the API.
+- Since there is a valid use-case for class-private members (namely to avoid name clashes of names with names defined by subclasses), there is limited support for such a mechanism, called name mangling. Any identifier of the form `__spam` (at least two leading underscores, at most one trailing underscore) is textually replaced with `_classname__spam`. This mangling is done without regard to the syntactic position of the identifier, as long as it occurs within the definition of a class.
+```
+class Mapping:
+    def __init__(self, iterable):
+        self.items_list = []
+        self.__update(iterable)
+
+    def update(self, iterable):
+        for item in iterable:
+            self.items_list.append(item)
+
+    __update = update   # private copy of original update() method
+
+class MappingSubclass(Mapping):
+    def update(self, keys, values):
+        # provides new signature for update()
+        # but does not break __init__()
+        for item in zip(keys, values):
+            self.items_list.append(item)
+```
+- Notice that code passed to `exec()` or `eval()` does not consider the classname of the invoking class to be the current class; this is similar to the effect of the global statement, the effect of which is likewise restricted to code that is byte-compiled together. The same restriction applies to `getattr()`, `setattr()` and `delattr()`, as well as when referencing `__dict__` directly.
+
+## Odds and Ends
+- An empty class definition can simply bund together a few named data items:
+```
+class Employee:
+    pass
+    
+john = Employee()
+john.name = 'John Doe'
+john.dept = 'computer lab'
+john.salary = 1000
+```
+- Instance method objects have attributes, too: `m.__self__` is the instance object with the method m(), and `m.__func__` is the function object corresponding to the method.
+
+## User-Defined Exceptions
+- There are two new valid (semantic) forms for the `raise` statement:
+```
+raise Class     # Class must be an instance of "type" or of a class derived from it
+raise Instance
+```
+- A class in an `except` clause is compatible with an exception if it is the same class or a base class thereof:
+```
+class B(Exception):
+    pass
+class C(B):
+    pass
+class D(C):
+    pass
+    
+for cls in [B, C, D]:
+    try:
+        raise cls()
+    except B:
+        print('B')
+    except C:
+        print('C')
+    except D:
+        print('D')
+# it will print B, B, B
+```
+- When an error message is printed for an unhandled exception, the exception’s class name is printed, then a colon and a space, and finally the instance converted to a string using the built-in function `str()`.
+
+## Iterators
+- The `for` statement calls `iter()` on the container object. The function returns an iterator object that defines the method `__next__()` which accesses elements in the container one at a time. When there are no more elements, `__next__()` raises a `StopIteration` exception which tells the for loop to terminate. You can call the `__next__()` method using the `next()` built-in function.
+```
+s = 'abc'
+it = iter(s)
+next(it)
+```
+- It's easy to add iterator behavior to your classes:
+```
+class Reverse:
+    """Iterator for looping over a sequence backwards"""
+    def __init__(self, data):
+        self.data = data
+        self.index = len(data)
+    def __iter__(self):
+        return self
+    def __next__(self):
+        if self.index == 0:
+            raise StopIteration
+        self.index = self.index - 1
+        return self.data[self.index]
+```
+
+### Generators
+- Generators are a simple and powerful tool for creating iterators. They are written like regular functions but use the `yield` statement whenever they want to return data. Each time `next()` is called on it, the generator resumes where it left-off (it remembers all the data values and which statement was last executed):
+```
+def reverse(data):
+    for index in range(len(data)-1, -1, -1):
+        yield data[index]
+```
+- Another key feature is that the local variables and execution state are automatically saved between calls.
+- Some simple generators can be coded succinctly as expressions using a syntax similar to list comprehensions but with parentheses instead of brackets. These expressions are designed for situations where the generator is used right away by an enclosing function:
+```
+xvec = [10, 20, 30]
+yvec = [7, 5, 3]
+sum(x*y for x,y in zip(xvec, yvec)) # dot product
+```
+
+# The Standard Library
+
+## Operating System Interface
+- 

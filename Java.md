@@ -207,6 +207,18 @@ b = 10<<2;  // ok
 int a = 1;
 b = a<<2;   // error (cannot convert int to byte)
 ```
+- Note that the precedence of `+` is higher than shift.
+- Change utf-8 code string to byte array:
+```
+byte[] byteArr = new byte[10000];
+for (int i=0; i*2<input.length(); i++) {
+    int high = Byte.decode("0x"+input.charAt(i*2));
+    int low = Byte.decode("0x"+input.charAt(i*2+1));
+    byteArr[i] = (byte) ((high<<4) + low);
+}
+String str = new String(byteArr, "utf-8");
+```
+
 ### Casting Operators
 - In Java, casting is safe, with the exception of narrowing conversion. Here the compiler forces you to use a cast. With a widening conversion an explicit cast is not needed.
 - Java allows you to cast any primitive type to any other primitive type, except for `boolean`.
@@ -1346,6 +1358,39 @@ The call to `shutdown()` prevents new tasks from being submitted to that `Execut
 - Note that in any of the thread pools, existing threads are automatically reused when possible. `CachedThreadPool` will generally create as many thread as it needs during the execution and then will stop creating new thread as it recycles the old ones. So it's a reasonable first chuice as an `Executor`. If it causes problems, you need to switch to a `FixedThreadPoool` (usually in production code).
 - `SingleThreadExecutor` is useful for anything you want to run in another thread continually, or short tasks that you want to run in a thread (e.g. log updating or event-dispatching). If more than one task is submitted, they will be queued and each task will run to completion before the next task is begun, all using the same thread.
 - Suppose you have a number of threads running tasks that use the file system, you can run with a `SingleThreadExecutor` to ensure that only one task at a time is running. You don't need to deal with synchronizing on the shared resource. By serializing tasks, you can eliminate the need to serialize the objects.
+- The constructor of `ThreadPoolExecutor` is:
+```
+public ThreadPoolExecutor(int corePoolSize,
+                          int maximumPoolSize,
+                          long keepAliveTime,
+                          TimeUnit unit,
+                          BlockingQueue<Runnable> workQueue,
+                          ThreadFactory threadFactory,
+                          RejectedExecutionHandler handler)
+```
+the process of the thread pool is:
+1. If the pool size is below `corePoolSize`, a new thread will be created to execute;
+2. If the pool size is not below `corePoolSize`, the request will be stored in `workQueue`, the idle thread will get task from the queue;
+3. If the pool is full, a new thread will be created;
+4. If the pool size is not below `maximumPoolSize`, a `RejectedExecutionHandler` will handle it;
+5. If the pool size is above `corePoolSize`, the extra threads will wait for `keepAliveTime*unit`. If there are no more thread after, it will be destroyed.
+
+- `newFixedThreadPool` is like this:
+```
+public static ExecutorService newFixedThreadPool(int nThreads) {
+    return new ThreadPoolExecutor(nThreads, nThreads,
+                                  0L, TimeUnit.MILLISECONDS,
+                                  new LinkedBlockingQueue<Runnable>());
+}
+```
+- `newCachedThreadPool` is like this:
+```
+public static ExecutorService newCachedThreadPool() {
+    return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                  60L, TimeUnit.SECONDS,
+                                  new SynchronousQueue<Runnable>());
+}
+```
 - The `Callable` interface introduced in Java SE5 is generic with a type parameter representing the return value. It must be invoked using an `ExecutorService submit()` method:
 ```
 class TaskWithResult implements Callable<String> {
@@ -1447,7 +1492,7 @@ public class DaeMonThreadPoolExecutor extends ThreadPoolExecutor {
                 new DaemonThreadFactory());
     }
     public static void main(String[] args) {
-        ExecutorService exec = new DaemonThreadPool Executor();
+        ExecutorService exec = new DaemonThreadPoolExecutor();
         // ...
     }
 }

@@ -702,4 +702,117 @@ sum(x*y for x,y in zip(xvec, yvec)) # dot product
 # The Standard Library
 
 ## Operating System Interface
+- The built-in `dir(os)` and `help(os)` functions are useful as interactive aids for working with large modules like `os`.
+- For daily file and directory management tasks, the `shutil` module provides a higher lever interface that is easier to use:
+```
+import shutil
+shutil.copyfile('data.db', 'archive.db')
+shutil.move('/build/executables', 'installdir')
+```
+- The `glob` module provides a function for making file lists from directory wildcard searches:
+```
+import glob
+glob.glob('*.py')
+```
+- The `getopt` module processes `sys.argv` using the conventions of the Unix `getopt()` function. More powerful and flexible command line processing is provided by the `argparse` module.
+- The most direct way to terminate a script is to use `sys.exit()`.
+
+## String Pattern Matching
+- When only sinple capabilities are needed, string methods are preferred to `re` module because they are easier to read and debug.
+
+## Mathematics
+- The `random` module provides tools for making random selections:
+```
+random.choice(['apple', 'pear', 'banana'])
+random.sample(range(100), 10)
+random.randrange(6)
+```
+
+## Internet Access
+- There are a number of modules for accessing the internet and processing internet protocols. Two of the simplest are `urllib.request` for retrieving data from URLs and `smtplib` for sending mail:
+```
+from urllib.request import urlopen
+for line in urlopen('http://tycho.usno.navy.mil/cgi-bin/timer.pl'):
+    line = line.decode('utf-8')  # Decoding the binary data to text.
+    if 'EST' in line or 'EDT' in line:  # look for Eastern Time
+        print(line)
+
+import smtplib
+server = smtplib.SMTP('localhost')
+server.sendmail('soothsayer@example.org', 'jcaesar@example.org',
+"""To: jcaesar@example.org
+From: soothsayer@example.org
+
+Beware the Ides of March.
+""")
+server.quit()
+```
+
+## Dates and Times
+```
+from datetime import date
+now = date.today()
+now.strftime("%m-%d-%y. %d %b %Y is a %A on the %d day of %B.")
+birthday = date(1964, 7, 31)
+age = now - birthday
+print age.days
+```
+
+## Data Compression
+- Common data archiving and compression formats are directly supported by modules including: `zlib`, `gzip`, `bz2`, `lzma`, `zipfile` and `tarfile`:
+```
+>>> import zlib
+>>> s = b'witch which has which witches wrist watch'
+>>> len(s)
+41
+>>> t = zlib.compress(s)
+>>> len(t)
+37
+>>> zlib.decompress(t)
+b'witch which has which witches wrist watch'
+>>> zlib.crc32(s)
+226805979
+```
+
+## Performance Measurement
+- The `timeit` module quickly demonstrates a modest performance advantage:
+```
+>>> from timeit import Timer
+>>> Timer('t=a; a=b; b=t', 'a=1; b=2').timeit()
+0.57535828626024577
+>>> Timer('a,b = b,a', 'a=1; b=2').timeit()
+0.54962537085770791
+```
+- In contrast to `timeit`‘s fine level of granularity, the `profile` and `pstats` modules provide tools for identifying time critical sections in larger blocks of code.
+
+## Quality Control
+- The `doctest` module provides a tool for scanning a module and validating tests embedded in a program’s docstrings. Test construction is as simple as cutting-and-pasting a typical call along with its results into the docstring:
+```
+def average(values):
+    """Computes the arithmetic mean of a list of numbers.
+
+    >>> print(average([20, 30, 70]))
+    40.0
+    """
+    return sum(values) / len(values)
+
+import doctest
+doctest.testmod()   # automatically validate the embedded tests
+```
+- The `unittest` module is not as effortless as the `doctest` module, but it allows a more comprehensive set of tests to be maintained in a separate file:
+```
+import unittest
+class TestStatisticalFunctions(unittest.TestCase):
+    def test_average(self):
+        self.assertEqual(average([20, 30, 70]), 40.0)
+        self.assertEqual(round(average([1, 5, 7]), 1), 4.3)
+        with self.assertRaises(ZeroDivisionError):
+            average([])
+        with self.assertRaises(TypeError):
+            average(20, 30, 70)
+
+unittest.main() # Calling from the command line invokes all tests
+```
+
+## Output Formatting
 - 

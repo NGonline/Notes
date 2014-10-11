@@ -658,6 +658,7 @@ class Drawing extends Art{
 ## Method
 - The act of calling a method is commonly referred to as sending a message to an object.
 - There is a secret first argument `this` passed to a non-static method, which produces the reference to the object that the method has been called for.
+- Interfaces can't contain static methods, and static methods cannot be overriden. (But in Java 8, interfaces can have static methods.)
 
 ### Overloading
 - For overloading with primitives, if you have a data type that is smaller than the argument in the method, that data type is promoted to the smallest possible type.

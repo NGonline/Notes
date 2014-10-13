@@ -19,6 +19,10 @@
 # -*- coding: encoding -*-
 ```
 - In interactive mode, the last printed expression is assigned to the variable `_`. Don’t explicitly assign a value to it — you would create an independent local variable with the same name masking the built-in variable with its magic behavior.
+- Python scriptes can be made directly executable by putting the line at the beginning:
+```
+#!/usr/bin/env python3.4
+```
 
 ## Values and Types
 - If you are not sure what type a value has, the interpreter can tell you: `type(1.7)`.
@@ -815,4 +819,182 @@ unittest.main() # Calling from the command line invokes all tests
 ```
 
 ## Output Formatting
-- 
+- The `reprlib` module provides a version of `repr()` customized for abbreviated displays of large or deeply nested containers:
+```
+>>> import reprlib
+>>> reprlib.repr(set('supercalifragilisticexpialidocious'))
+"set(['a', 'c', 'd', 'e', 'f', 'g', ...])"
+```
+- The pprint module offers more sophisticated control over printing both built-in and user defined objects in a way that is readable by the interpreter:
+```
+>>> import pprint
+>>> t = [[[['black', 'cyan'], 'white', ['green', 'red']], [['magenta',
+...     'yellow'], 'blue']]]
+...
+>>> pprint.pprint(t, width=30)
+[[[['black', 'cyan'],   #  adds line breaks and indentation
+   'white',
+   ['green', 'red']],
+  [['magenta', 'yellow'],
+   'blue']]]
+```
+- The `textwrap` module formats paragraphs of text to fit a given screen width.
+- The `locale` module accesses a database of culture specific data formats. The grouping attribute of locale’s format function provides a direct way of formatting numbers with group separators:
+```
+>>> import locale
+>>> locale.setlocale(locale.LC_ALL, 'English_United States.1252')
+'English_United States.1252'
+>>> conv = locale.localeconv()          # get a mapping of conventions
+>>> x = 1234567.8
+>>> locale.format("%d", x, grouping=True)
+'1,234,567'
+>>> locale.format_string("%s%.*f", (conv['currency_symbol'],
+...                      conv['frac_digits'], x), grouping=True)
+'$1,234,567.80'
+```
+
+## Templating
+- This allows users to customize their applications without having to alter the application:
+```
+>>> from string import Template
+>>> t = Template('${village}folk send $$10 to $cause.')
+>>> t.substitute(village='Nottingham', cause='the ditch fund')
+'Nottinghamfolk send $10 to the ditch fund.'
+```
+- The `substitute()` method raises a `KeyError` when a placeholder is not supplied in a dictionary or a keyword argument. For mail-merge style applications, user supplied data may be incomplete and the `safe_substitute()` method may be more appropriate — it will leave placeholders unchanged if data is missing:
+```
+>>> t = Template('Return the $item to $owner.')
+>>> d = dict(item='unladen swallow')
+>>> t.substitute(d)
+Traceback (most recent call last):
+  ...
+KeyError: 'owner'
+>>> t.safe_substitute(d)
+'Return the unladen swallow to $owner.'
+```
+- Template subclasses can specify a custom delimiter. For example, a batch renaming utility for a photo browser may elect to use percent signs for placeholders such as the current date, image sequence number, or file format:
+```
+import time, os.path
+photofiles = ['img_1074.jpg', 'img_1076.jpg', 'img_1077.jpg']
+class BatchRename(Template):
+    delimiter = '%'
+format = "Ashley_%n%f"
+t = BatchRename(format)
+date = time.strftime('%d%b%y')
+for i, filename in enumerate(photofiles):
+    base, ext = os.path.splitext(filename)
+    newname = t.substitute(d=date, n=i, f=ext)
+    print('{0} --> {1}'.format(filename, newname))
+    
+# img_1074.jpg --> Ashley_0.jpg
+# img_1076.jpg --> Ashley_1.jpg
+# img_1077.jpg --> Ashley_2.jpg
+```
+- Another application for templating is separating program logic from the details of multiple output formats. This makes it possible to substitute custom templates for XML files, plain text reports, and HTML web reports.
+
+## Binary Data Record Layouts
+- The `struct` module provides `pack()` and `unpack()` functions for working with variable length binary record formats.
+
+## Multi-Threading
+- The following code shows how the high level `threading` module can run tasks in background while the main program continues to run:
+```
+import threading, zipfile
+
+class AsyncZip(threading.Thread):
+    def __init__(self, infile, outfile):
+        threading.Thread.__init__(self)
+        self.infile = infile
+        self.outfile = outfile
+    def run(self):
+        f = zipfile.ZipFile(self.outfile, 'w', zipfile.ZIP_DEFLATED)
+        f.write(self.infile)
+        f.close()
+        print('Finished background zip of:', self.infile)
+
+background = AsyncZip('mydata.txt', 'myarchive.zip')
+background.start()
+print('The main program continues to run in foreground.')
+background.join()    # Wait for the background task to finish
+print('Main program waited until background was done.')
+```
+- The preferred approach to task coordination is to concentrate all access to a resource in a single thread and then use the `queue` module to feed that thread with requests from other threads. Applications using `Queue` objects for inter-thread communication and coordination are easier to design, more readable, and more reliable.
+
+## Logging
+- The `logging` module offers a full featured and flexible logging system.
+```
+import logging
+logging.warning('Warning:config file %s not found', 'server.conf')
+```
+- By default, informational and debugging messages are suppressed and the output is sent to standard error.
+
+## Weak References
+- The `weakref` module provides tools for tracking objects without creating a reference. When the object is no longer needed, it is automatically removed from a weakref table and a callback is triggered for weakref objects. Typical applications include caching objects that are expensive to create:
+```
+import weakref, gc
+class A:
+    def __init__(self, value):
+        self.value = value
+    def __repr__(self):
+        return str(self.value)
+
+a = A(10)                   # create a reference
+d = weakref.WeakValueDictionary()
+d['primary'] = a            # does not create a reference
+d['primary']                # fetch the object if it is still alive
+
+del a                       # remove the one reference
+gc.collect()                # run garbage collection right away
+
+d['primary']                # entry was automatically removed
+```
+
+## Working with Lists
+- The `array` module provides an `array()` object that is like a list that stores only homogeneous data and stores it more compactly.
+```
+from array import array
+# an array of numbers stored as two byte unsigned binary numbers (typecode "H") rather than the usual 16 bytes per entry for regular lists of Python int objects
+a = array('H', [4000, 10, 700, 22222])
+```
+- The `collections` module provides a `deque()` object that is like a list with faster appends and pops from the left side but slower lookups in the middle.
+- `bisect` module provides functions for bisection:
+```
+import bisect
+import random
+random.seed(1)
+l=[]
+for i in range(1,15):
+    r=random.randint(1,100)
+    position=bisect.bisect_left(l,r)
+    bisect.insort_left(l,r)
+```
+- The `heapq` module provides functions for implementing heaps based on regular lists.
+```
+>>> from heapq import heapify, heappop, heappush
+>>> data = [1, 3, 5, 7, 9, 2, 4, 6, 8, 0]
+>>> heapify(data)                      # rearrange the list into heap order
+>>> heappush(data, -5)                 # add a new entry
+>>> [heappop(data) for i in range(3)]  # fetch the three smallest entries
+[-5, 0, 1]
+```
+
+## Decimal Floating Point Arithmetic
+- The `decimal` module offers a `Decimal` datatype for decimal floating point arithmetic. Compared to the built-in float implementation of binary floating point, the class is especially helpful for:
+ - financial applications and other uses which require exact decimal representation,
+ - control over precision,
+ - control over rounding to meet legal or regulatory requirements,
+ - tracking of significant decimal places, or
+ - applications where the user expects the results to match calculations done by hand.
+```
+>>> from decimal import *
+>>> Decimal('1.00') % Decimal('.10')
+Decimal('0.00')
+>>> 1.00 % 0.10
+0.09999999999999995
+>>> sum([Decimal('0.1')]*10) == Decimal('1.0')
+True
+>>> sum([0.1]*10) == 1.0
+False
+>>> getcontext().prec = 36
+>>> Decimal(1) / Decimal(7)
+Decimal('0.142857142857142857142857142857142857')
+```

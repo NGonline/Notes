@@ -122,6 +122,7 @@ sed 's/<.*\?>//g' xxx.html  // will delete whole lines as <a>b<\a>
 | [c1-c2] | 匹配 c1-c2 中的任意单一字符 | [0-9] [a-z] a[0-9]b 0与9之间必须也只能有一个字符 如a0b, a1b... a9b。|
 | {string1,string2,...} | 匹配 sring1 或 string2 (或更多)其一字符串 | a{abc,xyz,123}b    a与b之间只能是abc或xyz或123这三个字符串之一。
 需要说明的是：通配符看起来有点象正则表达式语句，但是它与正则表达式不同的，不能相互混淆。把通配符理解为shell 特殊代号字符就可。而且涉及的只有，*,? [] ,{} 这几种。
+- Bash commands can be executed consecutively: ```commmand1 && command2```
 
 
 ## Brace Expansion
@@ -189,10 +190,12 @@ Start Program 1
 - `cp -v f g` explain what is being done
 
 ## crontab
-- `crontab -e` to edit the config file.
+- `crontab -e` to edit the config file. `minute, hour, day, month, week command`
 - `30 7 * * * command` each 7:30 am.
 - `*/1 * * * * command` every minute.
 - `*/3 6-8 * * * command` every three minutes between 6:00 am and 8:00 am.
+- `L` means the last possible value. `0 8 L * ?` every 8:00 am at the last day of each month.
+- You can't specify values on both day and week since that is ambiguous. `?` means whatever on these fields. If you specify a value to one of these two fields, the other must be `?`.
 
 ## curl
 - To transfer data from or to a server, using one of the supported protocols (HTTP, HTTPS, FTP, FTPS, SCP, SFTP, TFTP, DICT, TELNET, LDAP or FILE).

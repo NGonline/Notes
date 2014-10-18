@@ -6629,6 +6629,44 @@ static void changeHiddenVariable(Object a, String variableName) throws Exception
 - Java-based Web servers allow you to perform all your server-side programming in Java by writing what are called servlets.
 - Servlets and their offspring, JSPs, eliminate the problems of dealing with differently abled browsers.
 
+# Graphical User Interfaces
+- A fundamental design guideline is "make simple things easy, and difficult things possible". A variation on this is called "the principle of least astonishment," which essentially says, "don't surprise the user".
+- Java 2 essentially replaces everything with the Java Foundation Classes (JFC), the GUI protion of which is called "Swing". These are a rich set of easy-to-use, easy-to-understand JavaBeans that can be dragged and dropped to create a reasonable GUI.
+- Applet is a program that can be delivered across the Internet to run (inside a so-called sandbox, for security) in a Web browser.
+
+## JavaBeans
+- Characteristics that can be modified at design time are referred to as properties.
+- The behaviors of a visual component are partially represented by events.
+- The IDE uses reflection to dynamically interrogate the component and find out which properties and events the component supports. Once it knows what they are, it can display the properties and allow you to change them, and also display the events.
+- A Bean is just a class. It is the method name that tells the IDE whether this is a property, an event, or just an ordinary method:
+1. The type produced by the "get" method is the same as the type of the argument to the "set" method. The name of the property and the type for the "get" and "set" are not related. The property name does not force to use any particular identifier for internal variables.
+2. For a `boolean` property, you can use the "get" and "set" approach above, but you can also use "is" instead of "get".
+3. Ordinary methods of the Bean don't conform to the above naming convention, but they're `public`.
+4. For events, you use the Swing "listener" approach. Most of the time, the built-in events and listeners will satisfy your needs, but you can also create your own events and listener interfaces.
+- Ordinarily, you'll use multicast events so that many listeners can be notified of an event. However, that runs into threading issues.
+
+### Introspector and BeanInfo
+- Java reflection discovers all the methods of an unknown class. In fact, one of the prime reasons that reflection was added to Java was to support JavaBeans (although reflection also supports object serialization and Remote Method Invocation, and is helpful in ordinary programming).
+- To provide a standard gateway to the creation of more complex Geans. You pass a `Class` reference to this method, and it fully interrogates that class and returns a `BeanInfo` object which you can dissect to find properties, methods, and events. A second argument can tell the `Introspector` where to stop in the inheritance hierarchy. If you an `Object.class`, then it will stop before it parses all the methods from `Object`.
+
+### JavaBeans and Synchronization
+- Whenever you create a Bean, you must assume that it will run in a multithreaded environment:
+ - Whenever possible, all the `public` methods of a Bean should be `synchronized`. If that's a problem, methods that will not cause problems in critical sections can be left unsynchronized. Such methods tend to be small and/or "atomic". Making such methods unsynchronized might not have a significant effect on the execution speed of your program.
+ - You must assume that listeners might be added or removed while moving through the list.
+- Deciding whether to synchronize overridden methods is not as clear as when you're adding your own methods. The issues you must consider are:
+ - Does the method modify the state of critical variables within the object. You must determine whether they will be read or set by other threads in the program.
+ - Does the method depend on the state of these critical variables. What's the worst thing that will happen if they are changed during this method. If it's nothing too bad, and a transient effect at that, you can decide to leave it unsynchronized.
+ - Whether the base-class version is synchronized. This isn't an airtight argument, just a clue. Notice that `synchronized` doesn't inherit.
+ - The method must be as fast as possible. Anything that takes processing overhead out of these methods is highly recommended.
+
+### Packing a Bean
+- Before you can bring a JavaBean into a Bean-enabled IDE, it must be put into a Bean container. A manifest file is simply a text file that follows a particular form.
+- The name in the manifest file must include this package information. In addition, you must place the manifest file in the directory above the root of your package path. Then you must invoke `jar` from the same directory as the manifest file:
+```
+jar cfm Target.jar Bean.mf beandirectory
+```
+- The jar creates its own manifest file called MANIFEST.MF and placed it inside the subdirectory META-INF. Once you have your Bean properly inside a JAR file, you can bring it into a Beans-enabled IDE.
+
 # Others
 
 ## Name Visibility

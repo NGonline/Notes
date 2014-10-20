@@ -877,6 +877,34 @@ class Z extends D{
 3. The point of creation of the inner-class object is not tied to the creation of the outer-class object.
 4. There is no potentially confusing "is-a" relationship with the inner class.
 - The inner classes also produce **.class** files to contain the informationi for their `Class` objects (Outer$Inner.class). If inner classes are anonymous, the compiler simply starts generating numbers as inner-class identifiers. Be care that $ is a meta-character to the Unix shell.
+- The inner class has access to the outer class's private member.
+- Also, if the member or constructor is declared private, then access is permitted if and only if it occurs within the body of the top level class that encloses the declaration of the member or constructor.
+```
+public class OuterClass {
+    public static void main(String[] args) {
+        InnerClass inner = new OuterClass().new InnerClass();
+        System.out.println("InnerClass Field = " + inner.x);
+    }
+    class InnerClass {
+        // the compiler will build a static method access(InnerClass) to get this value
+        private int x = 10;
+    }
+}
+```
+Note that if inner class is anounymous, you have no way to get its reference with exact type, and can't access to its private fields:
+```
+public class PrivateToOuter {
+    Runnable mRunnable = new Runnable() {
+        private int x = 10;
+        @Override
+        public void run() {}
+    };
+    public static void main(String[] args) {
+        PrivateToOuter p = new PrivateToOuter();
+        System.out.println("InnerClass Field = " + mRunnable.x);    // Illegal
+    }
+}
+```
 
 ### .this and .new
 - The inner class secretly captures a reference to the particular object of the enclosing class that was responsible for creating it. An object of an inner class can be created only in association with an object of the enclosing class when the inner class is non-static.

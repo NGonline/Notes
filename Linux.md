@@ -24,6 +24,7 @@
 - &something<ENTER> shows only those lines which contains something. The filter can be discarded by &<ENTER>
 - / is used for search.
 - By default, man is viewed with less.
+- `-S` causes lines longer than the screen width to be chopped rather than folded.
 
 ## grep
 - To print lines matching a pattern. It will search the standard input if no files (or a single `-`) are named. e.g. `command |grep XXX`
@@ -169,7 +170,9 @@ Start Program 1
 - `command < file` read the parameter from file
 
 ## at
-- executes commands at a specified time. `at now+2 hours`, `at 17:30 2/24/99`
+- executes commands at a specified time. `at now+2 hours`, `at 17:30 2/24/99`, `at 2:30 PM next month` ...
+- `atq` lists pending jobs; `atrm` removes a job; `batch` executes commands then system in idling.
+- The atd process must have been started (`/etc/init.d/atd start`)
 
 ## cat
 - `cat` simply copy standard input to standard output
@@ -191,11 +194,13 @@ Start Program 1
 
 ## crontab
 - `crontab -e` to edit the config file. `minute, hour, day, month, week command`
+- `crontab file` install crontab for the current user, overwriting existing one in the process.
 - `30 7 * * * command` each 7:30 am.
 - `*/1 * * * * command` every minute.
 - `*/3 6-8 * * * command` every three minutes between 6:00 am and 8:00 am.
 - `L` means the last possible value. `0 8 L * ?` every 8:00 am at the last day of each month.
 - You can't specify values on both day and week since that is ambiguous. `?` means whatever on these fields. If you specify a value to one of these two fields, the other must be `?`.
+- **/etc/crontab** is system-wide cron configuration file. **/var/spool/cron/crontabs/** is the directory for storing user configuration files.
 
 ## curl
 - To transfer data from or to a server, using one of the supported protocols (HTTP, HTTPS, FTP, FTPS, SCP, SFTP, TFTP, DICT, TELNET, LDAP or FILE).
@@ -248,6 +253,9 @@ foo=hello world
 - `=` without `export` will only affects the current process.
 - `export` or `export -p` prints a list of all names that are exported in this shell.
 
+## fg
+- Bring a program to foreground. It will bring last suspended program to foreground if called without parameters.
+
 ## find
 - `find /path/ -name xxx`
 - `-iname` ignore upper or lower cases
@@ -255,13 +263,24 @@ foo=hello world
 ## gzip
 - `gzip` compress
 - `gzip -d` unpack
-
-## iconv
-- `iconv -f a -t b` change charset from a to b
+- `-c` writes output on a standard output, keep original files unchanged.
 
 ## history
 - `history -w` writes all your command history to .bash_history file. Normally this is done at the end of your session, when you close it by typing exit or by pressing <CTRL>+D.
 - If you prepend a command with space it won't be saved in history.
+
+## iconv
+- `iconv -f a -t b` change charset from a to b
+
+## info
+- <UP>, <DOWN>, <LEFT>, <RIGHT> allows you to scroll text. <ENTER> open the link under cursor. Links start with * . <TAB> — jump to the next link in document.
+ - u --- go up one level.
+ - p --- go to previous page, just like in browser.
+ - n --- go to next pages.
+ - q --- close info.
+
+## jobs
+- List all background programs.
 
 ## join
 - Join lines of two files on a common field, and write a line to standard output for each pair with identical join fields. Note that both files must be sorted on the join fields.
@@ -280,12 +299,15 @@ foo=hello world
 ## kill
 - Send the specified signal to the specified process or process group. `kill -2` sends SIGINT, `kill -3` sends SIGQUIT, `kill -15` sends SIGTERM (default), `kill -9` sends SIGKILL, `kill -18` sends SIGCONT, `kill -19` sends SIGSTOP.
 - SIGQUIT：On POSIX-compliant platforms, SIGQUIT is the signal sent to a process by its controlling terminal when the user requests that the process perform a core dump. SIGQUIT can usually be induced with Control-\. On Linux, one may also use Ctrl-4 or, on the virtual console, the SysRq key.
-- SIGTERM：SIGTERM is the default signal sent to a process by the kill or killall commands. It causes the termination of a process, but unlike the SIGKILL signal, it can be caught and interpreted (or ignored) by the process. Therefore, SIGTERM is akin to asking a process to terminate nicely, allowing cleanup and closure of files. For this reason, on many Unix systems during shutdown, init issues SIGTERM to all processes that are not essential to powering off, waits a few seconds, and then issues SIGKILL to forcibly terminate any such processes that remain.
+- SIGTERM：SIGTERM is the default signal sent to a process by the `kill` or `killall` commands. It causes the termination of a process, but unlike the SIGKILL signal, it can be caught and interpreted (or ignored) by the process. Therefore, SIGTERM is akin to asking a process to terminate nicely, allowing cleanup and closure of files. For this reason, on many Unix systems during shutdown, init issues SIGTERM to all processes that are not essential to powering off, waits a few seconds, and then issues SIGKILL to forcibly terminate any such processes that remain.
 - SIGINT：On POSIX-compliant platforms, SIGINT is the signal sent to a process by its controlling terminal when a user wishes to interrupt the process. SIGINT is sent when the user on the process' controlling terminal presses the interrupt the running process key — typically Control-C, but on some systems, the "delete" character or "break" key.
 - SIGKILL：On POSIX-compliant platforms, SIGKILL is the signal sent to a process to cause it to terminate immediately. When sent to a program, SIGKILL causes it to terminate immediately. In contrast to SIGTERM and SIGINT, this signal cannot be caught or ignored, and the receiving process cannot perform any clean-up upon receiving this signal.
 
 ## kinit
 - obtain and cache Kerberos ticket-granting ticket
+
+## klist
+- List the Kerberos tickets held in a credentials cache, or the keys held in a keytab file.
 
 ## ln
 - `ln t l` creates a link to `t` with the name `l`. It differs from `cp` in not copying the contents of the file. Both files point to the same physical blocks. If one of them is deleted, the other still works.
@@ -306,6 +328,8 @@ foo=hello world
 
 ## man
 - `man -K` will search for text in all manual pages. This is a brute-force search. The result will be shown one manual after another.
+- `man -k` searches something in man pages descriptions.
+- `man -wK` searches something in man page bodies.
 
 ## mv
 - Notice that it overwrites the destination file without asking.
@@ -327,9 +351,11 @@ foo=hello world
 - `--sort` specifies sorting order. Sorting syntax is [+|-]key[,[+|-]key[,...]]. For example: `ps jax --sort=uid,-ppid,+pid`
 - `ps -u | grep [j]ava` will match all process with "java" but not the command itself.
 - In the result of `ps -u`:
+ - TIME: the execution time --- the time the process actually used the CPU(s), not including the time the process waits for I/O events.
  - RSS: resident set size, the non-swapped physical memory that a task has used (in kiloBytes). (alias rssize, rsz).
  - VSZ: virtual memory size of the process in KiB (1024-byte units). Device mappings are currently excluded; this is subject to change. (alias vsize).
 - `grep -P "31.22038\t121.41149" fingerprints` or `grep '1.22038'$'\t''121.41149'" fingerprints"` matches '\t'
+- `ps -ax --forest` will show ASCII-art process hierarchy.
 
 ## pwd
 - Print out the current working directory.
@@ -358,6 +384,9 @@ foo=hello world
 - start from 1
 - Note that "\t" doesn't work fine in some implementation of `sort`. `sort -t $'\t' -o Density10m -k 2,2rn part-00000` only works for bash. The dollar sign tells bash to use ANSI-C quoting. `"Ctrl-v<tab>"` also works.
 
+## sshpass
+- Provide noninteractive ssh password. `sshpass -p password ssh -p58422 -o StrictHostKeyChecking=no name@0.0.0.0 "command"`
+
 ## tac
 - Concatenate and print files in reverse.
 
@@ -372,6 +401,9 @@ foo=hello world
 ## tcpdump
 - Prints out a description of the contents of packets on a network interface that match the user-defined boolean expression.
 - `tcpdump -XX -r` read packets and print headers and datas of each packet.
+
+## tee
+- Copy standard input to each file and also to standard output.
 
 ## test
 - Check file types and compare values: `test "abc" = "def" ;echo $?`
@@ -436,19 +468,181 @@ struct stat {
 ```
 - **Ctrl+D** produces EOF character (ASCII 04).
 
-## .bash_rc
-- Every time you log into this user, the commands in it will be executed.
+## .bash_profile
+- Bash reads commands from it when invoked as the login shell. It usually loads `.bashrc`.
+- `/etc/profile` is global, while `.bash_profile` only works for one user.
 
-## /dev/null
+## .bashrc
+- When you start bash as an interactive shell (i.e., not to run a script), it reads `~/.bashrc` (except when invoked as a login shell, then it only reads `~/.bash_profile`).
+- `/etc/bashrc` is global, while `.bashrc` only works for one user.
+
+## Special Devices
+
+### /dev/stdin, /dev/stdout, /dev/stderr
+- `cat > testf < /dev/stdin` prints your input and write it to `testf`
+- `cat testf > /dev/stdout | grep xxx` redirects testf to stdout, and passed by pipe to grep
+- `cat testf > /dev/stderr | grep xxx` prints testf, and since it's not stdout, nothing will be passed to grep through pipe
+
+### /dev/null
 - It's a special device file that discards all data written to it but reports that the write operation succeeds.
 
-## /dev/zero
+### /dev/zero
 - Once you read it, it will provide infinite number of NULL (ASCII 00) character.
 - It's usually used to create a fixed-size of empty file:
 ```
 # create a file of 1 MB, filled with 0
 dd if=/dev/zero of=foobar count=1024 bs=1024
 ```
+
+### /dev/full
+- Once you write to it, it will return the error code `ENOSPC` (meaning "No space left on device"), and provide an infinite number of null characters to any process that reads from it (similar to /dev/zero).
+- This device is usually used when testing the behaviour of a program when it encounters a "disk full" error.
+
+### /dev/fd
+- Opening the files in the directory is equivalent to copy those file descriptor: `fd=open("/def/fd/0",mode);` is equivalent to `fd=dup(0)`.
+```
+$> cat a
+aaa
+$> cat b
+bbb
+$> echo abc | cat a b
+aaa
+bbb
+$> echo abc | cat a - b
+aaa
+abc
+bbb
+$> echo abc | cat a /dev/fd/0 b
+aaa
+abc
+bbb
+```
+
+## Directory
+- In Linux all same types of files are installed in the same locations. For example, executable files from all programs are installed in **/usr/bin**, documentation from all programs in **/usr/share/doc** and so on.
+- Which files go where is defined a document called FHS standard, you can view it by invoking `man 7 hier`.
+ - / --- This is the root directory. This is where the whole tree starts.
+ - /bin --- This directory contains executable programs which are needed in single user mode and to bring the up or repair it.
+ - /boot --- Contains static files for the boot loader. This directory only holds the files which are needed the boot process. The map installer and configuration files should go to /sbin and /etc.
+ - /dev --- Special or device files, which refer to physical devices. See mknod(1).
+ - /etc --- Contains configuration files which are local to the machine.
+ - /home --- On machines with home directories for users, these are usually beneath this directory, directly o The structure of this directory depends on local administration decisions.
+ - /lib --- This directory should hold those shared libraries that are necessary to boot the system and to run commands in the root file system.
+ - /media --- This directory contains mount points for removable media such as CD and DVD disks or USB sticks.
+ - /mnt --- This directory is a mount point for a temporarily mounted file system. In some distributions, /mnt contains subdirectories intended to be used as mount points for several temporary file systems.
+ - /proc --- This is a mount point for the proc file system, which provides information about running processes and the kernel. This pseudo-file system is described in more detail in proc(5).
+ - /root --- This directory is usually the home directory for the root user (optional).
+ - /sbin --- Like /bin, this directory holds commands needed to boot the system, but which are usually not executed by normal users.
+ - /srv --- This directory contains site-specific data that is served by this system.
+ - /tmp --- This directory contains temporary files which may be deleted with no notice, such as by a regular job or at system boot up.
+ - /usr --- This directory is usually mounted from a separate partition. It should hold only sharable, read-only data, so that it can be mounted by various machines running Linux.
+ - /usr/bin --- This is the primary directory for executable programs. Most programs executed by normal users which are not needed for booting or for repairing the system and which are not installed locally should be placed in this directory.
+ - /usr/local --- This is where programs which are local to the site typically go.
+ - /usr/share --- This directory contains subdirectories with specific application data, that can be shared among different architectures of the same OS. Often one finds stuff here that used to live in /usr/doc or /usr/lib or /usr/man.
+ - /usr/share/doc --- Documentation about installed programs.
+ - /var --- This directory contains files which may change in size, such as spool and log files.
+ - /var/log --- Miscellaneous log files.
+ - /var/spool --- Spooled (or queued) files for various programs.
+ - /var/tmp --- Like /tmp, this directory holds temporary files stored for an unspecified duration.
+
+# Job Control
+- Linux is a multitasking operating system, and bash surely has tools to control multiple jobs execution for you:
+| command | effect |
+| - | - |
+| Ctrl + z | place currently running program in the background |
+| jobs | list all background programs |
+| fg | bring a program to foreground |
+| Ctrl + c | stop execution of currently running programs at once |
+
+## Exit Status
+- In Linux there is a standard mechanism for getting information from child process to parent process, and this mechanism is called exit status, or return code. When program encounters no errors during execution it returns zero, 0. If some errors did occur, this code is non-zero. That simple. In Bash this exit code is saved into `?` environment variable, which as you know now can be accessed as `$?`.
+
+# Processes
+- Outline of what happens when you running `ls`:
+1. Bash:
+ - locates ls on hard disk
+ - forks itself to Bash clone, i.e. clones itself to the new location in memory
+ - becomes parent process to Bash clone
+ - control is now passed to the Bash clone
+2. Bash clone
+ - becomes child process to Bash
+ - preserves parent Bash process environment
+ - knows that it is a clone and reacts accordingly: overwrites itself with ls
+ - control is now passed to ls
+3. ls
+ - prints out a directory listing for you or returns an error
+ - returns exit code
+ - control is now passed to Bash
+4. Bash
+ - assigns ls exit code to `?` variable
+ - waits for your input
+ 
+## Process States
+- The process state codes of `ps`:
+ - D: uninterruptible sleep (usually IO). Process is busy or hung, and does not respond to signals.
+ - R: running or runnable (on run queue).
+ - S: interruptible sleep (waiting for an event to complete). Terminal processes and Bash are often in this state.
+ - T: stopped, either by a job control signal or because it is being traced.
+ - W: paging (not valid since the 2.6.xx kernel).
+ - X: dead (should never be seen).
+ - Z: zombie process, terminated but not reaped by its parent.
+ - <: high-priority (not nice to other users).
+ - N: low-priority (nice to other users).
+ - L: has pages locked into memory (for real-time and custom IO).
+ - s: is a session leader. Related processes in Linux are treated as a unit, and have shared Session ID (SID).
+ - l: is multi-threaded (using CLONE_THREAD, like NPTL pthreads do).
+ - +: is in the foreground process group. Such processes are allowed to input and output to the tty.
+- ![Process States](http://www.linux-tutorial.info/Linux_Tutorial/The_Operating_System/The_Kernel/Processes/procflowa.gif "Process States")
+- Sending signals is a way to communicate with processes. Possible signals of `kill`:
+| Signal | Num | Action | Description |
+| - | - | - | - |
+| 0 | 0 | n/a | exit code inicates if a signal may be sent |
+| HUP | 1 | exit | hangup on controlling terminal or parent process died |
+| INT | 2 | exit | interrupt from keyboard |
+| QUIT | 3 | core | quit from keyboard |
+| ILL | 4 | core | illegal instruction |
+| TRAP | 5 | core | trace/breakpoint trap |
+| ABRT | 6 | core | abort signal from abort(3) |
+| FPE | 8 | core | floating point exception |
+| KILL | 9 | exit | non-catchable, non-ignorable kill |
+| SEGV | 11 | core | invalid memory reference |
+| PIPE | 13 | exit | broken pipe: write to pipe with no readers |
+| ALRM | 14 | exit | timer signal from alarm(2) |
+| TERM | 15 | exit | terminate process |
+
+# System Boot
+- Typical system boot process:
+1. BIOS: 
+ - performs hardware-specific tasks
+ - makes POST, Power-On Self-Test, which tests your hardware
+ - detects installed hardware, such as hard disks, memory type and amount, ...
+ - initializes hardware by writing initial values into their memory
+ - finds a boot device, which is usually a hard disk
+ - read and executes MBR (Main Boot Record) located at the beginning of this disk
+ - control is now passed to MBR
+2. MBR
+ - MBR finds and executes GRUB (Grand Unified Bootloader)
+ - control is now passed to GRUB
+3. GRUB
+ - finds available filesystems
+ - finds and reads its configuration file, to find out: where system is located, what system to boot, what other actions to perform
+ - executes Linux Kernel, main part of Linux OS
+ - control is now passed to Linux Kernel
+4. Linux Kernel:
+ - finds and loads initrd, which is initial ram disk. It contains necessary drivers which allow to access and mount real filesystems
+ - mounts the root file system, which is specified in GRUB config file
+ - executes /sbin/init, a special program which starts all the others
+ - control is now passed to init
+5. init
+ - looks at the /etc/inittab to determine desired run level
+ - loads all programs appropriate for this run level. All programs from /etc/rc.d/rc2.d/ are loaded, because 2 is default Debian run level. Then SSH and TTY are started so you are able to connect to your computer
+ - booting up is now finished
+6. user
+ - connect to computer using SSH
+ - SSH daemon executes bash shell
+- Daemon --- a program which runs in background all the time. This means that it does not care if you are logged into the system, and usually you do not need to start it manually, because daemond are started automatically when computer boots up.
+- Runlevel --- a mode of system operation. Basically, this is just numbers which are fed to init program, which knows which daemons are associated with each number, and startd and stops those daemons as needed. You can see run levels through `find /etc -type d -name 'rc*' 2>/dev/null | sort`
+- Scripts in rc directories are executed in alphabetical order. The number in those file names defines their start order. Scripts starting with "S" is executed with action start, those starting with "K" is killed when entering this runlevel.
 
 # Reference
 [1] Learn Linux the Hard Way. http://nixsrv.com/?id=llthw

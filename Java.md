@@ -1898,6 +1898,24 @@ public class ThreadLocalVariableHolder {
 ```
 - You are only able to access the contents of the object using the `get()` and `set()` methods. Notice that `increment()` and `get()` are not `synchronized`, because `ThreadLocal` guarantees that no race condition can occur.
 
+### ThreadLocal
+- This class provides thread-local variables. Each thread that accesses one has its own independently initialized copy of the variable. `ThreadLocal` instances are typically `private static` fields. After a thread goes away, all of its copies of thread-local instances are subject to garbage collection (unless other references to these copies exist).
+- It uses a map to store all copies, the key is the thread object and the value is the corresponding copy.
+```
+public class UniqueThreadIdGenerator {
+    private static final AtomicInteger uniqueId = new AtomicInteger(0);
+    private static final ThreadLocal < Integer > uniqueNum = 
+        new ThreadLocal < Integer > () {
+            @Override protected Integer initialValue() {
+                return uniqueId.getAndIncrement();
+        }
+    };
+    public static int getCurrentThreadId() {
+        return uniqueId.get();
+    }
+}
+```
+
 ## Terminating Tasks
 - `ExecutorService.awaitTermination()` waits for each task to complete, and if they all complete before the timeout value, it returns `true`, otherwise it returns `false` to indicate that not all tasks have completed.
 - Thread states:

@@ -478,6 +478,11 @@ struct stat {
 ## .bash_profile
 - Bash reads commands from it when invoked as the login shell. It usually loads `.bashrc`.
 - `/etc/profile` is global, while `.bash_profile` only works for one user.
+- After login, bash will read these files in order:
+ - /etc/profile
+ - ~/.bash_profile
+ - ~/.bash_login
+ - ~/.profile
 
 ## .bashrc
 - When you start bash as an interactive shell (i.e., not to run a script), it reads `~/.bashrc` (except when invoked as a login shell, then it only reads `~/.bash_profile`).

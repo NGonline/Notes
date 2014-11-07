@@ -63,4 +63,42 @@ public FileStatus[] globStatus(Path pathPattern, PathFilter filter) throws IOExc
 支持的通配符与bash相同：`*` `?` `[ab]` `[^ab]` `[a-b]` `[^a-b]` `{a,b}`(a或b中的一个表达式) `\c`(转义字符)
 - FileStatus[]可以通过FileUtil.stat2Paths(status)转化为Path[]
 - `hadoop ListStatus`可以展示一组路径集目录列表的并集
-- 
+
+## 读取文件
+- `DistributedFileSystem`通过使用RPC来调用namenode，以确定文件起始块的位置。对于每一个块，namenode返回存有该块副本的datanode地址。此外，这些datanode根据它们与客户端的距离来排序（根据集群的网络拓扑）。如果该客户端本身就是一个datanode，并存有相应数据块的一个副本时，则该节点将从本地读取数据。
+- 通过对数据流反复调用`read()`方法，可以将数据从datanode传输到客户端。到达块末时，`DFSInputStream`会关闭与该datanode的连接，然后寻找下一个块的最佳datanode，客户端只需要读取连续的流。
+- 读取时，块是按照打开`DFSInputStream`与datanode新建连接的顺序读取的，它也需要询问namenode来检索下一批所需块的datanode的位置。一旦客户端完成读取，就对`FSDataInputStream`调用`close()`方法。
+- 如果`DFSInputStream`在与datanode通行时遇到错误，它会尝试从另一个最邻近datanode读取数据。它也会记住那个故障datanode，以保证以后不会反复读取该节点上后续的块。`DFSInputStream`也会通过校验和确认从datanode发来的数据是否完整。
+- namenode告知客户端每个块中最佳的datanode，并让客户端直接联系该datanode且检索数据。namenode仅需要响应块位置的请求（信息存储在内存中，非常高效），而无需响应数据请求，否则随着客户端数量的增长，namenode很快会成为瓶颈。
+- 衡量节点之间的带宽实际上很难实现，Hadoop采用一个简单的方法，把网络看成一棵树，两个节点之间的距离是它们到最近的公共祖先的距离总和。树的层次没有预先设点，但通常可以设定等级。具体的想法是按以下顺序，可用带宽依次递减：
+ - 同一节点中的进程
+ - 同一机架上的不同节点
+ - 同一数据中心中不同机架上的节点
+ - 不同数据中心中的节点
+- 在默认情况下，假设网络是平铺的，仅有单一层次，即所有节点都在同一机架上。小的集群可能如此，所以不需要进一步配置。
+
+## 写入文件
+- 客户端调用`DistributedFileSystem`对象的`create()`方法创建文件。先对namenode创建一个RPC调用，在文件系统的命名空间中创建一个文件。
+- namenode执行各种检查确保这个文件不存在，并保证客户端有创建文件的权限。如果检查通过，namenode会创建新文件的一条记录。`DistributedFileSystem`则向客户端返回`FSDataOutputStream`对象开始写入
+- 写入是分为数据包写入data queue。`DataStreamer`根据datanode列表要求datanode分配合适的新块存储数据备份。一组datanode构成一个管线（个数等于副本数），前一个写入数据包并发送到下一个。
+- `DFSOutputStream`维护ack queue等待datanode的确认回执。如果写入期间datanode发生故障，则先关闭管线，将队列中的所有数据包都添加回data queue的最前端，以确保下游的datanode不会漏掉任何一个数据包；然后为存储在另一个正常datanode的当前数据块指定一个新的标识，一遍故障datanode回复后删除存储的部分数据块；从管线删除故障结点并将余下的数据块写入管线中正常的datanode；namenode发现复本不足时，会在另一个节点上创建新的复本，后续数据块继续正常接受处理。
+- 一个块写入期间只要成功写入了`dfs.replication.min`的复本数，写操作就会成功，并且这个块可以在集群中异步复制
+- 客户端完成写入后，会调用`close()`方法，将剩余所有数据包写入管线中，并在确认后联系namenode并发送完成信号。
+- datanode的选择权衡了可靠性、写入带宽和读取带宽。默认第一个复本在运行客户端的节点上，第二个在不同且随机的机架上，第三个与第二个在同一机架但不同节点，后续的在整个集群的随机节点上。节点和机架的选择会避免存储太慢或太忙的节点：
+ - 稳定性&负载均衡：两个机架
+ - 写入带宽：写入只需要遍历一个交换机
+ - 读取性能：两个机架中选择读取
+ - 块的均匀分布：只在本地机架写入一个块
+
+## 一致模型
+- HDFS为了性能牺牲了一些POSIX要求。在创建一个文件之后，其在文件系统的命名空间中立即可见。但是，写入文件的内容并不保证立即可见，即使数据流已经刷新并存储。当写入的数据超过一个块后，新的reader就能看见第一个块，其他reader无法看见当前正在写入的块。
+- `sync()`方法强制所有缓存与数据结点同步，当其返回成功后，所有新的reader都可以看见到目前为止写入的数据
+```
+Path p = new Path("p")
+FSDataOutputStream out = fs.create(p);
+out.write("content".getBytes("UTF-8"));
+out.flush();
+out.sync();
+```
+- 在HDFS中关闭文件其实还隐含执行了`sync()`方法。
+- 如果不调用`sync()`方法，则需要准备好在故障时可能会丢失一个数据块。但该操作有较多的额外开销，需要在鲁棒性和吞吐量之间进行权衡。

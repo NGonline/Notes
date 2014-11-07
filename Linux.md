@@ -170,9 +170,9 @@ Start Program 1
 - `command < file` read the parameter from file
 
 ## at
-- executes commands at a specified time. `at now+2 hours`, `at 17:30 2/24/99`, `at 2:30 PM next month` ...
-- `atq` lists pending jobs; `atrm` removes a job; `batch` executes commands then system in idling.
-- The atd process must have been started (`/etc/init.d/atd start`)
+- Reads from stdin and executes the command at a specified time. `at now+2 hours`, `at 17:30 2/24/99`, `at 2:30 PM next month` ...
+- `atq` lists pending jobs; `atrm` removes a job; `batch` executes commands when system in idling.
+- The atd process must have been started (`/etc/init.d/atd start`) for `at` to work.
 
 ## cat
 - `cat` simply copy standard input to standard output
@@ -195,6 +195,7 @@ Start Program 1
 ## crontab
 - `crontab -e` to edit the config file. `minute, hour, day, month, week command`
 - `crontab file` install crontab for the current user, overwriting existing one in the process.
+- `crontab -l` prints out current crontab.
 - `30 7 * * * command` each 7:30 am.
 - `*/1 * * * * command` every minute.
 - `*/3 6-8 * * * command` every three minutes between 6:00 am and 8:00 am.
@@ -430,12 +431,18 @@ foo=hello world
 - Translate or delete characters: `tr -d 'x'` delete all x, `tr '\n' ' '` replace all `'\n'` with `' ' `
 - `-s SET` squeezes repeats: replace each input sequence of a repeated character that is in SET into a single occurrence.
 
+## uniq
+- Filter adjacent matching lines, usually used after `sort`.
+
 ## w
 - Show who is logged on and what they are doing.
 
 ## wc
 - Reads either standard input or a list of files, and generates: newline count (**-l**), word count (**-w**), byte count (**-c**), length of the longest line (**-L**).
 - `cat filename | wc -l` will eliminate the filename in the output.
+
+## write
+- `echo xxx | write username` sends a message to another user.
 
 ## xargs
 - xargs reads items from the standard input, delimited by blanks (which can be protected with double or single quotes or a backslash) or newlines, and executes the command (default is /bin/echo) one or more times with any initial-arguments followed by items read from standard input. Blank lines on the standard input are ignored.
@@ -643,6 +650,9 @@ bbb
 - Daemon --- a program which runs in background all the time. This means that it does not care if you are logged into the system, and usually you do not need to start it manually, because daemond are started automatically when computer boots up.
 - Runlevel --- a mode of system operation. Basically, this is just numbers which are fed to init program, which knows which daemons are associated with each number, and startd and stops those daemons as needed. You can see run levels through `find /etc -type d -name 'rc*' 2>/dev/null | sort`
 - Scripts in rc directories are executed in alphabetical order. The number in those file names defines their start order. Scripts starting with "S" is executed with action start, those starting with "K" is killed when entering this runlevel.
+
+# Logging
+
 
 # Reference
 [1] Learn Linux the Hard Way. http://nixsrv.com/?id=llthw

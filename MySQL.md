@@ -31,3 +31,36 @@
 - If your MySQL Server is a replication slave, then you have a thread reading the binary log files from another MySQL Server and then another thread (or, in newer versions, threads) applying the changes.
 - If the slow query log or general query log is enabled, they¡¯ll also be written to at various points ¨C and the current code for this is not optimal, there be (yes, you guess it) global mutexes.
 - Once the results of a query have been sent back to the client, the MySQL Server cleans things up (frees some memory) and prepares itself for the next query. You probably have many queries being executed simultaneously, and this is (naturally) a good thing.
+
+# Syntax
+
+## INSERT
+```
+INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE]
+    [INTO] tbl_name [(col_name,...)]
+    VALUES ({expr | DEFAULT},...),(...),...
+    [ ON DUPLICATE KEY UPDATE col_name=expr, ... ]
+
+INSERT [LOW_PRIORITY | DELAYED | HIGH_PRIORITY] [IGNORE]
+    [INTO] tbl_name
+    SET col_name={expr | DEFAULT}, ...
+    [ ON DUPLICATE KEY UPDATE col_name=expr, ... ]
+
+INSERT [LOW_PRIORITY | HIGH_PRIORITY] [IGNORE]
+    [INTO] tbl_name [(col_name,...)]
+    SELECT ...
+    [ ON DUPLICATE KEY UPDATE col_name=expr, ... ]
+```
+
+## UPDATE
+```
+UPDATE [LOW_PRIORITY] [IGNORE] table_reference
+    SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}] ...
+    [WHERE where_condition]
+    [ORDER BY ...]
+    [LIMIT row_count]
+    
+UPDATE [LOW_PRIORITY] [IGNORE] table_references
+    SET col_name1={expr1|DEFAULT} [, col_name2={expr2|DEFAULT}] ...
+    [WHERE where_condition]
+```

@@ -16,7 +16,7 @@
 - when no script and no arguments are given, sys.argv[0] is an empty string. When the script name is given as `-` (meaning standard input), sys.argv[0] is set to '-'. When `-c` command is used, `sys.argv[0]` is set to '-c'. When `-m` module is used, `sys.argv[0]` is set to the full name of the located module.
 - It is also possible to specify a different encoding for source files. In order to do this, put one more special comment line right after the #! line to define the source file encoding:
 ```
-# -*- coding: encoding -*-
+# -*- coding: utf-8 -*-
 ```
 - In interactive mode, the last printed expression is assigned to the variable `_`. Don’t explicitly assign a value to it — you would create an independent local variable with the same name masking the built-in variable with its magic behavior.
 - Python scriptes can be made directly executable by putting the line at the beginning:

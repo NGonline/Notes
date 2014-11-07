@@ -3514,7 +3514,7 @@ bb.clear(10);
 
 ## Basic Features
 - `values()` method produces an array of the `enum` constants in the order in which they were declared.
-- When creating an `enum`, an associated class is produced by the compiler. This class is automatically inherited from `java.lang.Enum`. It's `Comparable` and `Serializable`.
+- When creating an `enum`, an associated class is produced by the compiler. This class is automatically inherited from `java.lang.Enum`. It's `Comparable` and `Serializable`. Since Java does not support multiple inheritance, an enum cannot extend anything else.
 - You can always safely compare `enum` instances using ==.
 - `static import` brings all the `enum` instance identifiers into the local namespace, so they don't need to be qualified:
 ```
@@ -3862,7 +3862,7 @@ enum RoShamBo implements Competitor<RoShamBo>{
 ```
 try{
 	// ...
-} catch(ObligatoryException e){
+} catch (ObligatoryException e) {
 	// Gulp!
 }
 ```
@@ -3882,16 +3882,16 @@ public static void main(String[] args) throws Exception{
 ```
 try{
 	// ...
-} catch(IDontKnowWhatToDoWithThisCheckedException e){
+} catch (IDontKnowWhatToDoWithThisCheckedException e) {
 	throw new RuntimeException(e);
 }
 ```
 Note that you can still handle the specific exception by using `getCause()`:
 ```
-catch(RuntimeExcepion e){
-	try{
+catch (RuntimeExcepion e) {
+	try {
 		throw e.getCause();
-	} catch(SomeException re){
+	} catch (SomeException re) {
 		// ...
 	}
 }
@@ -3916,41 +3916,41 @@ catch(RuntimeExcepion e){
 - `getStackTrace()` returns an array of stack trace elements, each representing one stack frame.
 - `fillInStackTrace()` in `Throwable` records information about the current state of the stack frames. Useful when an application is rethrowing an error or exception.
 ```
-try{
+try {
 	throw new Exception();
-}catch(Exception e){
-	for(StackTraceElement ste : e.getStackTrace())
+} catch(Exception e) {
+	for (StackTraceElement ste : e.getStackTrace())
 		System.out.println(ste.getMethodName());
 }
 ```
 - `printStackTrace()` produces information about the sequence of methods that were called:
 ```
-try{
+try {
     f();
-}catch(MyException e){
+} catch(MyException e) {
     e.printStackTrace(System.out);  // default is System.err
 }
 ```
 
 ### Rethrowing an Exception
 - After rethrowing the reference, any further `catch` clauses for the same `try` block are still ignored.
-- If you want to install new stack trace information, you can do so by calling `fillInStackTrace()`, which returns a `Throwable` object that it creates by stuffing the current stack information into the old exception object.
+- If you want to install new stack trace information, you can do so by calling `fillInStackTrace()`, which returns a `Throwable` object that it creates by stuffing the current stack information into the old exception object (the old trace information is cleared).
 ```
-throw (Exception)e.fillInStackTrace();	// becomes the new point of origin of the exception
+throw (Exception) e.fillInStackTrace();	// becomes the new point of origin of the exception
 ```
 - It's also possible to rethrow a different exception from the one you caught.
 - Catching one exception and throw another, but still keep the information about the originating exception is called exception chaining.
 - The cause is intended to be the originating exception.
 - The only `Throwable` subclasses that provide the cause argument in the constructor are: `Error`, `Exception`, and `RuntimeException`. If you want to chain any other exception types, you do it through the `initCause()` method rather that the constructor.
 ```
-catch(NullPointerException e){
+catch (NullPointerException e) {
 	DynamicFieldsException dfe = new DynamicFieldsException();
 	dfe.initCause(e);
 	throw dfe;	// printStackTrace() will show the cause
 }
 ```
 ```
-catch(NoSuchFieldException e){
+catch (NoSuchFieldException e) {
 	// such exception here is a programming error, so converted
 	throw new RuntimeException(e);
 }
@@ -3977,11 +3977,11 @@ catch(NoSuchFieldException e){
 ```
 while(true){
 	try{
-		if(count++ == 0)
+		if (count++ == 0)
 			throw new ThreeException();
-	} catch(ThreeException e){
+	} catch (ThreeException e) {
 		System.out.println("ThreeException");
-	} finally{
+	} finally {
 		if(count == 2)	// out of "while"
 			break;
 	}
@@ -3991,34 +3991,34 @@ while(true){
 - Even in cases in which the exceptioin is not caught in the current set of `catch` clauses, `finally` will be executed before the exception-handling mechanism continues its search for a handler at the next higher level.
 - Because `finally` is always executed, it's possible to return from multiple points within a method and still guarantee that important cleanup will be performed:
 ```
-public static void f(int i){
+public static void f(int i) {
 	try{
-		if(i == 1)
+		if (i == 1)
 			return;
-		if(i == 2)
+		if (i == 2)
 			return;
 		return;
-	} finally{
+	} finally {
 		System.out.print("Performing cleanup");
 	}
 }
 ```
 - It's possible for an exception to simply be lost in Java. C++ treats the situation in which a second exception is thrown before the first one is handled as a dire programming error:
 ```
-try{
-	try{
+try {
+	try {
 		throw new Exception1();	// lost
-	} finally{
+	} finally {
 		throw new Exception2();
 	}
-} catch(Exception e){	// only catch Exception2
+} catch (Exception e) {	// only catch Exception2
 	// ...
 }
 ```
 ```
-try{
+try {
 	throw new RuntimeException();
-} finally{
+} finally {
 	return;	// "return" inside the finally block will silence any thrown exception
 }
 ```
@@ -4070,12 +4070,12 @@ try{
 public InputFile(String fname) throws Exception{
 	try{
 		in = new BufferedReader(new FileReader(fname));
-	} catch(FileNotFoundException e){
+	} catch (FileNotFoundException e) {
 		throw e;	// not open, so need to close
-	} catch(Exception e){
-		try{
+	} catch (Exception e) {
+		try {
 			in.close();
-		} catch(IOException e2){
+		} catch (IOException e2) {
 			System.out.println("close unsuccessfully");
 		}
 		throw e;
@@ -4093,27 +4093,27 @@ try{
 		int i = 1;
 		while((s=in.getLine()) != null)
 			;
-	} catch(Exception e){
+	} catch (Exception e) {
 		e.printStackTrace(System.out);
-	} finally{	// not executed if construction fails, and always executed if it succeeds
+	} finally {	// not executed if construction fails, and always executed if it succeeds
 		in.dispose();
 	}
-} catch(Exception e){
+} catch (Exception e) {
 	// ...
 }
 ```
 - The basic rule is: Right after you create an object that requires cleanup, begin a `try`-`finally`:
 ```
-try{
+try {
 	NeedsCleanup nc1 = new NeedsCleanup();
-	try{
+	try {
 		NeedsCleanup nc2 = new NeedsCleanup();
-		try{
+		try {
 			// ...
-		} finally{
+		} finally {
 			nc2.dispose();
 		}
-	} finally{
+	} finally {
 		nc.dispose();
 	}
 }
@@ -6696,6 +6696,13 @@ jar cfm Target.jar Bean.mf beandirectory
 - The jar creates its own manifest file called MANIFEST.MF and placed it inside the subdirectory META-INF. Once you have your Bean properly inside a JAR file, you can bring it into a Beans-enabled IDE.
 
 # Others
+
+## Assertion
+- The assertions won't be checked unless you enable it `java -ea xxx` or `java -enableassertions`.
+- You can write extra information in assertion
+```
+assert flag : "flag is false!";
+```
 
 ## Name Visibility
 - The language prevents name clashes for you. The Java creators want you to use your Internet domain name in reverse to produce an unambiguous name for a library.

@@ -116,12 +116,12 @@ def f(a, L=None):
 ### Arbitary Argument List
 - These arguments will be wrapped up in a tuple. Before the variable number of arguments, zero or more normal arguments may occur.
 - Normally, these variadic arguments will be last in the list of formal parameters, because they scoop up all remaining input arguments that are passed to the function. Any formal parameters which occur after the *args parameter are ‘keyword-only’ arguments, meaning that they can only be used as keywords rather than positional arguments.
-- The reverse situation occurs when the arguments are already in a list or tuple but need to be unpacked for a function call requiring separate positional arguments. If they are not available separately, write the function call with the *-operator to unpack the arguments out of a list or tuple:
+- The reverse situation occurs when the arguments are already in a list or tuple but need to be unpacked for a function call requiring separate positional arguments. If they are not available separately, write the function call with the `*` operator to unpack the arguments out of a list or tuple:
 ```
 args = [3, 6]
 range(*args)
 ```
-- In the same fashion, dictionaries can deliver keyword arguments with the **-operator.
+- In the same fashion, dictionaries can deliver keyword arguments with the `**`operator.
 
 ### Documentation String
 ```

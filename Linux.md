@@ -35,6 +35,7 @@
 - `grep` patterns are matched against individual lines so there is no way for a pattern to match a newline found in the input. `\n` separate the patterns around it and they are or'd together:`grep $'pattern1\npattern2'` is equivalent to `grep 'pattern1\|pattern2'`, and `grep $'abc\n'` matches every line.
 - "\d", "\D", "\s", "\S", "\w", "\W" are common extensions of basic regex. So they are not supported in the default `-G` mod. You need to use `-P`.
 - `-E` option supports regex for "+", "?", "|", "()", with some other improvements.
+- `-r` read all files under each directory recursively.
 
 ## sed
 - `sed 's/pattern/replace/option'` is a stream editor for filtering and transforming text.
@@ -259,7 +260,8 @@ foo=hello world
 
 ## find
 - `find /path/ -name xxx`
-- `-iname` ignore upper or lower cases
+- `-iname` ignore upper or lower cases.
+- `-mmin n` finds files whose data were last modified n minutes ago.
 
 ## gzip
 - `gzip` compress
@@ -317,6 +319,9 @@ foo=hello world
 ## locale
 - Prints out all locale variables which are used by programs for setting up number, address, phone format, etc. according to the format of the specified country.
 - Variable `LANG` is used by programs to determine which language to use when interacting with you.
+
+## logger
+- Make entries in the system log
 
 ## ls 
 - Every file starts with dot is hidden. **-a** shows all files including the hidden ones. **-l** prints file list in **long** format: permissions, owner, group, size, timestamp (normally modification time) and filename.
@@ -657,6 +662,12 @@ bbb
 - Scripts in rc directories are executed in alphabetical order. The number in those file names defines their start order. Scripts starting with "S" is executed with action start, those starting with "K" is killed when entering this runlevel.
 
 # Logging
+- Daemons write their status and operations in log files. In Debian these files reside in **/var/log/** directory.
+- Daemons usually write logs through the daemon called **rsyslogd**, which is called a "logging daemon". It writes logs to different files for simplifying searching and analyzing them.
+- "Facilities" distinguish between the log files, and each entry is also marked with severity status (alert, critical, debug, ...).
+- Log rotation is performed by **logrotate** daemon.
+
+# Filesystem
 
 
 # Reference

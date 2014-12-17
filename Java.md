@@ -1384,7 +1384,7 @@ public class CachedThreadPool {
 The call to `shutdown()` prevents new tasks from being submitted to that `Executor`.
 
 - With the `FixedThreadPool`, you do expensive thread allocation once, up front, and you thus limit the number of threads. It's useful in an event-driven system. Event handlers require threads can be serviced as quickly as you want by simply fetching threads from the pool.
-- Note that in any of the thread pools, existing threads are automatically reused when possible. `CachedThreadPool` will generally create as many thread as it needs during the execution and then will stop creating new thread as it recycles the old ones. So it's a reasonable first chuice as an `Executor`. If it causes problems, you need to switch to a `FixedThreadPoool` (usually in production code).
+- Note that in any of the thread pools, existing threads are automatically reused when possible. `CachedThreadPool` will generally create as many thread as it needs during the execution and then will stop creating new thread as it recycles the old ones. So it's a reasonable first chuice as an `Executor`. If it causes problems, you need to switch to a `FixedThreadPool` (usually in production code).
 - `SingleThreadExecutor` is useful for anything you want to run in another thread continually, or short tasks that you want to run in a thread (e.g. log updating or event-dispatching). If more than one task is submitted, they will be queued and each task will run to completion before the next task is begun, all using the same thread.
 - Suppose you have a number of threads running tasks that use the file system, you can run with a `SingleThreadExecutor` to ensure that only one task at a time is running. You don't need to deal with synchronizing on the shared resource. By serializing tasks, you can eliminate the need to serialize the objects.
 - The constructor of `ThreadPoolExecutor` is:
@@ -3053,7 +3053,7 @@ Collection.addAll(collection,moreInts);
 ```
 - `Arrays.asList()` takes a best guess about the resulting type of the `List`, and may cause a problem:
 ```
-// Won't compile, return a type of List<Derived1>
+// Won't compile, return a type of List<Derived1> (but experiment shows ok)
 // List<Base> obj = Arrays.asList(new Derived1(), new Derived2());
 // Explicit type argument specification
 List<Base> obj = Arrays.<Base>asList(new Derived1(), new Derived2());
@@ -4514,7 +4514,7 @@ public class GenericArray<T>{
 ```
 Byte[] p = {1,2,3,4,5}; // autoboxing converses the elements one by one
 Set<Byte> m = new HashSet<Byte>(Arrays.asList(p));  // ok
-Set<Byte> my = new HashSet<Byte>(Arrays.<Byte>asList(1,2,3,4)); // constructs an Integer array first; autoboxing doesn't apply to arrays
+Set<Byte> my = new HashSet<Byte>(Arrays.<Byte>asList(1,2,3,4)); // won't compile, constructs an Integer array first; autoboxing doesn't apply to arrays
 ```
 
 ## Bounds
@@ -5784,7 +5784,7 @@ List<Widget> lw4 = (List<Widget>)List.class.cast(in.readObject());  // warning
 - You can also write all the primitive data types using the same methods as `DataOutputStream` (they share the same interface).
 - You can also write and read through a `ByteArray`:
 ```
-public class Worm implements Serializable{
+public class Worm implements Serializable {
     private static random rand = new Random(47);
     private Integer[] d = {rand.nextInt(10), rand.nextInt(10)};
     private Worm next;
@@ -5808,6 +5808,11 @@ public class Worm implements Serializable{
 Object mystery = in.readObject();
 System.out.println(mystery.getClass());
 ```
+- The deserialization process only continues in object hierarchy till the class is `Serializable`. Values of the instance variables inherited from super class will be initialized by calling constructor of non-`Serializable` super class during deserialization process. If the field in the invoked constructor is not serialized, an exception will be thrown. From Java docs:
+> To allow subtypes of non-serializable classes to be serialized, the subtype may assume responsibility for saving and restoring the state of the supertype's public, protected, and (if accessible) package fields. The subtype may assume this responsibility only if the class it extends has an accessible no-arg constructor to initialize the class's state. It is an error to declare a class Serializable if this is not the case. The error will be detected at runtime.
+> During deserialization, the fields of non-serializable classes will be initialized using the public or protected no-arg constructor of the class. A no-arg constructor must be accessible to the subclass that is serializable. The fields of serializable subclasses will be restored from the stream.
+- If the super class is `Serializable` and you don't want the current one to be `Serializable`, you need to implement `writeObject(ObjectOutputStream)` and `readObject(ObjectInputStream)` and throw `NotSerializableExcepion` in them.
+- The `readObjectNoData()` method is responsible for initializing the state of the object for its particular class in the event that the serialization stream does not list the given class as a superclass of the object being deserialized
 
 ### Controlling Serialization
 - You can control the process of serialization by implementing the `Externalizable` interface. It extends the `Serializable` interface and adds two methods, `writeExternal()` and `readExternal()`. They are automatically called during serialization and deserialization.
@@ -6175,6 +6180,8 @@ System.out.println(str1==str2); // false
 ```
 - When the `intern()` method is invoked, if the pool already contains a string equal to this String object as determined by the equals(Object) method, then the string from the pool is returned. Otherwise, this String object is added to the pool and a reference to this String object is returned.
 - `trim()` returns a copy of the string, with leading and trailing whitespace (including `'\n'`, `'\t'`, `'\r'`, `'\v'`, ...) omitted.
+- `String.valueOf(Object)` is equivalent to `Object.toString()` when input is not `null`. If it is, `String.valueOf()` will return `"null"` rather than throw an exception.
+- Unicode can be directly expressed as `"\u0004\u0005"`.
 
 ## StringBuilder
 - Concatenated overloaded '+' will create a lot of objects and cause efficiency issues. The compiler will use `StringBuilder` and call `toString()` to replace it.
@@ -6263,8 +6270,9 @@ System.out.println(f.format(1.135)); // 1.14
 | B | non word boundary (every position where \\b not) |
 | G | end of the previous match |
 ```
-`-?\\d+` // integer number.
+`"-?\\d+"` // integer number.
 "+911".matches("(-|\\+)?\\d+"); // true, () is needed
+`"[\\w\\W]"` and `"\\s\\D"` matches `"\n"` while `"."` cannot
 ```
 - `split()`, `replaceFirst()`, and `replaceAll()` are useful with regular expressions.
 - Many regular expression operations take `CharSequence` arguments (interface for `CharBuffer`, `String`, `StringBuffer`, `StringBuilder`).
@@ -6553,6 +6561,20 @@ class DynamicProxyHandler implements InvocationHandler{
 			// ...
 		return method.invode(proxied, args);	// reflection for proxied.method(args)
 	}
+}
+```
+- The exceptions thrown from the methods that are invoked by reflection will be wrapped in `InvocationTargetException`.
+```
+public abstract class ReflectiveCallable {
+    public Object run() throws Throwable {
+        try {
+            return runReflectiveCall();
+        } catch (InvocationTargetException e) {
+            throw e.getTargetException();   // get the origin Exception
+        }
+    }
+
+    protected abstract Object runReflectiveCall() throws Throwable;
 }
 ```
 

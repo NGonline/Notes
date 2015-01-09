@@ -854,6 +854,38 @@ interface DerivedGetter extends OrdinaryGetter{
 
 ### Polymorphic Methods inside Constructors
 - It calls a method in a derived class (even when it's in the base-class constructor). If you do this inside a constructor, you can call a method that might manipulate members that haven't been initialized yet (those defined in the derived class). C++ produces more rational behavior in this situation.
+```
+class Base {
+	public Base() {
+		System.out.println("base constructor");
+		func();
+	}
+	public void func() {
+		System.out.println("base func");
+	}
+}
+class Derive extends Base {
+	private int i;
+	public Derive() {
+		i = 1;
+		System.out.println("derive constructor");
+		func();
+	}
+	public void func() {
+		System.out.println("derive func: " + i);
+	}
+}
+public class Experiment {
+    public static void main(String[] args){
+    	new Derive().func();
+    }
+}
+// base constructor
+// derive func: 0
+// derive constructor
+// derive func: 1
+// derive func: 1
+```
 - The only safe methods to call inside a constructor are those that are `final` in the base class (including `private`).
 
 ### Extension
@@ -6785,6 +6817,9 @@ assert flag : "flag is false!";
 - Javadoc will process comment documentation for only `public` and `protected` members. Comments for `private` and package-access members are ignored.
 - Embedded HTML allows you full use of HTML; however, the primary motive is to let you format code.
 - Within the documentation comment, asterisks at the beginning of a line are thrown away by Javadoc, along with leading spaces.
+
+## Date and Calendar
+- From JDK1.1, `Calendar` is recommanded to process time rather than `Date`. But note that it's not thread-safe, so should not be static. To reduce overhead, `ThreadLocal` can be used for `Calendar`.
 
 # Reference
 [1]	Thinking in Java Ed.4

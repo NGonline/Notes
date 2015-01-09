@@ -181,6 +181,9 @@ Start Program 1
 - `cat -n f` output f's contents with numbering all output lines
 - `cat -v f` show nonprinting
 
+## cd
+- `cd -` goes back to the previous directory.
+
 ## chmod
 - Change the file mode. The three part of the mode string correspond to the owner, the user in the same group as the owner, and the other users.
 - `chmod [who] [+-=mode]`. `who` can be `u` for owner, `g` for those in the same group, `o` for the others, and `a` for all. `mode` can be `r` or `4` for read, `w` or `2` for write, and `x` or `1` for excute.
@@ -192,6 +195,9 @@ Start Program 1
 
 ## cp
 - `cp -v f g` explain what is being done
+- `-i` will ask before overwriting
+- `-f` won't break if one file in the file list inexists
+- `-a` copy recursively and keeps the mode
 
 ## crontab
 - `crontab -e` to edit the config file. `minute, hour, day, month, week command`
@@ -222,7 +228,10 @@ Start Program 1
  - count=BLOCKS : copy only BLOCKS input blocks
 
 ## df
-- `df -h dir` show the disk usage of the dir
+- `df -h dir` show the disk usage of the current filesystem
+
+## du
+- show the disk usage of the directory
 
 ## diff
 - `diff file1 file2` shows the difference of file2 to file1
@@ -258,10 +267,19 @@ foo=hello world
 ## fg
 - Bring a program to foreground. It will bring last suspended program to foreground if called without parameters.
 
+## file
+- determine file type
+
 ## find
 - `find /path/ -name xxx`
 - `-iname` ignore upper or lower cases.
 - `-mmin n` finds files whose data were last modified n minutes ago.
+
+## free
+- Display amount of free and used memory in the system
+
+## fsck
+- Check partition for errors
 
 ## gzip
 - `gzip` compress
@@ -313,7 +331,7 @@ foo=hello world
 - List the Kerberos tickets held in a credentials cache, or the keys held in a keytab file.
 
 ## ln
-- `ln t l` creates a link to `t` with the name `l`. It differs from `cp` in not copying the contents of the file. Both files point to the same physical blocks. If one of them is deleted, the other still works.
+- `ln t l` creates a link to `t` with the name `l`. It differs from `cp` in not copying the contents of the file. Both files point to the same physical blocks. If one of them is deleted, the other still works. If all links are removed, the file content will be removed.
 - `ln -s` creates soft link. If the origin file is deleted, the link file will still exists but empty.
 
 ## locale
@@ -328,6 +346,7 @@ foo=hello world
 - Note that **-l** shows the size of the directory in *blocks*.
 - `ls -tr` mean that file list is sorted by time in reverse direction. This means that most recently created and modified files are printed last.
 - `ll` is a common alias to `ls -l`
+- `-i` prints the index number of each file, can be used to determine symbolic link
 
 ## lzop
 - `lzop file` compress, `lzop -x file` extract
@@ -340,6 +359,8 @@ foo=hello world
 ## mv
 - Notice that it overwrites the destination file without asking.
 - `mv xxx xxx xxx xxx destDir` move sources to one destination
+- `-i` will ask before overwriting
+- `-f` won't break if one file in the file list inexists
 
 ## name
 - Print certain system information.
@@ -392,6 +413,9 @@ foo=hello world
 
 ## sshpass
 - Provide noninteractive ssh password. `sshpass -p password ssh -p58422 -o StrictHostKeyChecking=no name@0.0.0.0 "command"`
+
+## sudo
+- `sudo -s` executes root (superuser) shell
 
 ## tac
 - Concatenate and print files in reverse.
@@ -668,7 +692,20 @@ bbb
 - Log rotation is performed by **logrotate** daemon.
 
 # Filesystem
+- Unix-like operating systems create a virtual file system, which makes all the files on all the devices appear to exist in a single hierarchy. This means, in those systems, there is one root directory, and every file existing on the system is located under it somewhere. Unix-like systems can use a RAM disk or network shared resource as its root directory.
+- **/etc/fstab** stores static information about the filesystems. It's only read by programs, and not written
+- Inode --- an Index Node, is a structure which store all the information about a file system object (file, directory, etc.) except data content and file name.
+- Block --- a minimum chunk of disk space which can be allocated. It usually defaults to 4096 bytes, or 4 Kilobytes.
 
+## mkfs
+- `mkfs.ext3 /dev/xxx` create an ext3 file system. If executed on a device with existing file system, this file system will be destroyed.
+- `mkfs.ext4` create an ext4 file system.
+
+## tune2fs
+- print out and change file system parameters.
+
+## fsck
+- check and repair a Linux file system.
 
 # Reference
 [1] Learn Linux the Hard Way. http://nixsrv.com/?id=llthw
